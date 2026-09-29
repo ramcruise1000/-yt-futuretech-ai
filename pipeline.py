@@ -1,7 +1,7 @@
 import os
 import json
-import time
 import asyncio
+import requests
 from google import genai
 from google.genai import types
 from PIL import Image, ImageDraw
@@ -13,20 +13,17 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
 # ==========================================
-# STEP 1: Gemini API Script Generation (with Auto-Retry)
+# STEP 1: AI Script Generation (Gemini + Groq Fallback)
 # ==========================================
 def generate_script():
-    print("🧠 Step 1: Requesting educational script from Gemini API...")
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("❌ GEMINI_API_KEY secret is missing or empty! Verify GitHub Repository Secrets.")
+    print("🧠 Step 1: Requesting educational script from AI...")
+    gemini_key = os.environ.get("GEMINI_API_KEY")
+    groq_key = os.environ.get("GROQ_API_KEY")
 
-    client = genai.Client(api_key=api_key)
-    
     prompt = """You are an expert AI & Tech news content creator for YouTube Shorts.
 Generate an educational, highly engaging 40-second video script about a major recent breakthrough in AI (e.g., OpenAI, Gemini, Robotics, or Autonomous Agents).
 
-Return a JSON object with this exact structure:
+Return ONLY a JSON object with this exact structure:
 {
   "title": "Did OpenAI Just Change Coding Forever? | AI News #Shorts",
   "description": "Exploring the latest AI breakthrough in software engineering. Subscribe to FutureTech Pulse for daily AI news! #Shorts #AINews #FutureTech",
@@ -34,35 +31,49 @@ Return a JSON object with this exact structure:
   "script": "OpenAI just unveiled a massive update that might change software development forever. Here is what you need to know in 40 seconds..."
 }"""
 
-    # Model specified by Google API endpoint
-    models_to_try = ["gemini-3.8-flash"]
-    max_retries = 3
+    # --- PRIMARY PROVIDER: Gemini API ---
+    if gemini_key:
+        try:
+            print("   Attempting Primary Provider: Gemini API (gemini-3.8-flash)...")
+            client = genai.Client(api_key=gemini_key)
+            response = client.models.generate_content(
+                model="gemini-3.8-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                ),
+            )
+            content = json.loads(response.text.strip())
+            print(f"   ✅ Gemini success! Title: {content['title']}")
+            return content
+        except Exception as e:
+            print(f"   ⚠️ Gemini API failed ({e}). Switching to Groq Llama-3 fallback...")
 
-    for model in models_to_try:
-        for attempt in range(1, max_retries + 1):
-            try:
-                print(f"   Attempting model '{model}' (Try {attempt}/{max_retries})...")
-                response = client.models.generate_content(
-                    model=model,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                    ),
-                )
-                content = json.loads(response.text.strip())
-                print(f"   ✅ Successfully generated script with model '{model}'!")
-                print(f"   Generated Title: {content['title']}")
-                return content
-            except Exception as e:
-                err_str = str(e)
-                if "503" in err_str or "UNAVAILABLE" in err_str or "high demand" in err_str:
-                    print(f"   ⚠️ Model '{model}' hit a temporary 503 load spike. Pausing 10 seconds before retrying...")
-                    time.sleep(10)
-                else:
-                    print(f"   ⚠️ Error with '{model}': {e}. Retrying attempt {attempt}/{max_retries}...")
-                    time.sleep(5)
-                    
-    raise RuntimeError("❌ All Gemini API attempts failed. Please verify API key and model access.")
+    # --- BACKUP PROVIDER: Groq API (Llama 3.3 70B) ---
+    if groq_key:
+        try:
+            print("   Attempting Backup Provider: Groq API (llama-3.3-70b-versatile)...")
+            url = "https://api.groq.com/openai/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {groq_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": "llama-3.3-70b-versatile",
+                "messages": [{"role": "user", "content": prompt}],
+                "response_format": {"type": "json_object"}
+            }
+            res = requests.post(url, json=payload, headers=headers)
+            res.raise_for_status()
+            data = res.json()
+            raw_json = data["choices"][0]["message"]["content"]
+            content = json.loads(raw_json.strip())
+            print(f"   ✅ Groq Llama-3 success! Title: {content['title']}")
+            return content
+        except Exception as e:
+            print(f"   ⚠️ Groq API failed: {e}")
+
+    raise RuntimeError("❌ Both Gemini and Groq AI attempts failed. Please check your API keys.")
 
 # ==========================================
 # STEP 2: Edge-TTS Neural Voice Generation
@@ -185,3 +196,14 @@ if __name__ == "__main__":
     asyncio.run(create_voiceover(content["script"], "voiceover.mp3"))
     video_file = create_video(content["title"], content["script"], "voiceover.mp3", "final_video.mp4")
     upload_to_youtube(video_file, content["title"], content["description"], content["tags"])
+Step 3: Add GROQ_API_KEY to .github/workflows/futuretech_autopilot.yml
+Open your .github/workflows/futuretech_autopilot.yml file and add GROQ_API_KEY under env::
+      - name: Run Full AI Content & Upload Pipeline
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          python pipeline.py
