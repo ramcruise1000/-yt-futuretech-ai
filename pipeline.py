@@ -9,8 +9,9 @@ import feedparser
 import urllib.parse
 from datetime import datetime
 
-# Clean Pillow compatibility fix without deprecation warnings
+# Import PIL and sub-modules explicitly
 import PIL.Image
+import PIL.ImageDraw
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 if not hasattr(PIL.Image, 'ANTIALIAS'):
     PIL.Image.ANTIALIAS = getattr(PIL.Image, 'LANCZOS', getattr(PIL.Image, 'Resampling', PIL.Image).LANCZOS)
@@ -125,14 +126,13 @@ Return ONLY a JSON object with this exact structure:
         except Exception as e:
             print(f"   ⚠️ Gemini primary attempt failed ({e}). Switching to Groq fallback...")
 
-    # Backup Provider: Groq API (Strict Chat LLM Filtering)
+    # Backup Provider: Groq API
     if groq_key:
         try:
             print("   Attempting Backup Provider: Groq API...")
             groq_client = Groq(api_key=groq_key)
             models_data = groq_client.models.list().data
             
-            # Filter out guard, whisper, embed, and non-chat models
             active_chat_models = [
                 m.id for m in models_data 
                 if not any(bad in m.id.lower() for bad in ["whisper", "safetensors", "guard", "embed"])
@@ -146,7 +146,7 @@ Return ONLY a JSON object with this exact structure:
                         messages=[{"role": "user", "content": prompt}],
                         response_format={"type": "json_object"}
                     )
-                    raw_text = completion.choices[0].message.content.strip()
+                    raw_text = completion.choices.message.content.strip()
                     if "```json" in raw_text:
                         raw_text = raw_text.split("```json")[1].split("```")[0].strip()
                     elif "```" in raw_text:
