@@ -9,7 +9,7 @@ import feedparser
 import urllib.parse
 from datetime import datetime
 
-# Import PIL and sub-modules explicitly
+# Explicit PIL imports & deprecation warning fix
 import PIL.Image
 import PIL.ImageDraw
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -126,19 +126,24 @@ Return ONLY a JSON object with this exact structure:
         except Exception as e:
             print(f"   ⚠️ Gemini primary attempt failed ({e}). Switching to Groq fallback...")
 
-    # Backup Provider: Groq API
+    # Backup Provider: Groq API (Fixed Indexing & Standard Models)
     if groq_key:
         try:
             print("   Attempting Backup Provider: Groq API...")
             groq_client = Groq(api_key=groq_key)
-            models_data = groq_client.models.list().data
             
-            active_chat_models = [
-                m.id for m in models_data 
-                if not any(bad in m.id.lower() for bad in ["whisper", "safetensors", "guard", "embed"])
-            ]
+            # Prioritize primary stable models first
+            target_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+            
+            # Dynamically append active models, filtering out experimental ones
+            models_data = groq_client.models.list().data
+            for m in models_data:
+                mid = m.id.lower()
+                if not any(bad in mid for bad in ["whisper", "safetensors", "guard", "embed", "canopylabs", "orpheus", "allam"]):
+                    if m.id not in target_models:
+                        target_models.append(m.id)
 
-            for model in active_chat_models:
+            for model in target_models:
                 try:
                     print(f"   Trying Groq model: '{model}'...")
                     completion = groq_client.chat.completions.create(
@@ -146,7 +151,10 @@ Return ONLY a JSON object with this exact structure:
                         messages=[{"role": "user", "content": prompt}],
                         response_format={"type": "json_object"}
                     )
-                    raw_text = completion.choices.message.content.strip()
+                    
+                    # Fix: Access choices[0].message.content
+                    raw_text = completion.choices[0].message.content.strip()
+                    
                     if "```json" in raw_text:
                         raw_text = raw_text.split("```json")[1].split("```")[0].strip()
                     elif "```" in raw_text:
