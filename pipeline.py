@@ -31,6 +31,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
+from googleapiclient.errors import HttpError
 
 # Helper function to sanitize text for PIL font rendering
 def sanitize_text(text):
@@ -71,7 +72,7 @@ def get_trending_news():
 
     if news_items:
         random.shuffle(news_items)
-        selected_news = news_items[0]
+        selected_news = news_items
         print(f"   ✅ Selected AI & Tech Context: {selected_news[:90]}...")
         return selected_news
     
@@ -231,7 +232,7 @@ Return ONLY a valid JSON object with this exact structure:
         "long": {
             "title": f"INSANE: Next-Gen AI Models Pass Critical Human Benchmarks | FutureTech Pulse (Ed. #{run_id})",
             "description": "Comprehensive deep dive into recent artificial intelligence breakthroughs.",
-            "thumb_prompt": "quantum supercomputing server matrix glowing neon cybernetic AI brain 8k render",
+            "thumb_prompt": "quantum supercomputing server matrix glowing cyan AI brain 8k render",
             "tags": ["AI Breakthrough", "Artificial Intelligence", "Tech News", "FutureTech"],
             "slides": [
                 {"text": "Welcome to FutureTech Pulse. Today we are conducting an in-depth exploration into milestone AI developments.", "prompt": "futuristic glowing cybernetic AI brain 8k", "badge": "AI DEEP DIVE"},
@@ -277,7 +278,6 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
     width, height = (1080, 1920) if is_short else (1280, 720)
     print(f"🎨 Generating Unique High-CTR Thumbnail ({width}x{height}) -> {output_file}...")
     
-    # Use topic-specific prompt with cache-busting seed
     clean_visual = sanitize_text(visual_prompt) if visual_prompt else "futuristic AI brain cybernetic neon dark 8k"
     seed = random.randint(10000, 999999)
     encoded_prompt = urllib.parse.quote(f"{clean_visual}, high contrast dark cyber aesthetic 8k quality render")
@@ -494,7 +494,7 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
     return output_file
 
 # ==========================================
-# STEP 5: YouTube API Uploader with AI Disclosure Metadata
+# STEP 5: YouTube API Uploader with Graceful Limit Handling
 # ==========================================
 def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None):
     print(f"🚀 Uploading {video_file} to YouTube...")
@@ -532,25 +532,38 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
     media = MediaFileUpload(video_file, chunksize=-1, resumable=True, mimetype="video/mp4")
     request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
     
-    response = None
-    while response is None:
-        status, response = request.next_chunk()
-        if status:
-            print(f"   Upload Progress: {int(status.progress() * 100)}%")
-            
-    video_id = response.get("id")
-    print(f"🎉 SUCCESS! Published live to YouTube: https://youtu.be/{video_id}")
+    try:
+        response = None
+        while response is None:
+            status, response = request.next_chunk()
+            if status:
+                print(f"   Upload Progress: {int(status.progress() * 100)}%")
+                
+        video_id = response.get("id")
+        print(f"🎉 SUCCESS! Published live to YouTube: https://youtu.be/{video_id}")
 
-    # Set Custom Thumbnail via API
-    if thumbnail_file and os.path.exists(thumbnail_file):
-        try:
-            print(f"🖼️ Setting custom thumbnail for Video ID {video_id}...")
-            youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_file)).execute()
-            print("   ✅ Custom thumbnail published successfully!")
-        except Exception as e:
-            print(f"   ⚠️ Could not set thumbnail ({e}). Ensure YouTube channel is phone-verified for custom thumbnails.")
+        # Set Custom Thumbnail via API
+        if thumbnail_file and os.path.exists(thumbnail_file):
+            try:
+                print(f"🖼️ Setting custom thumbnail for Video ID {video_id}...")
+                youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_file)).execute()
+                print("   ✅ Custom thumbnail published successfully!")
+            except Exception as e:
+                print(f"   ⚠️ Could not set thumbnail ({e}). Ensure YouTube channel is phone-verified for custom thumbnails.")
 
-    return video_id
+        return video_id
+
+    except HttpError as e:
+        if "uploadLimitExceeded" in str(e):
+            print("⚠️ YOUTUBE DAILY UPLOAD LIMIT REACHED: YouTube restricts new/automated channels to a limited number of uploads per 24 hours.")
+            print("   Your video was generated and rendered successfully, but YouTube paused uploads for today.")
+            print("   The daily upload limit will reset automatically in 24 hours!")
+        else:
+            print(f"⚠️ YouTube API Error ({e.resp.status}): {e}")
+        return None
+    except Exception as e:
+        print(f"⚠️ Upload Exception: {e}")
+        return None
 
 # ==========================================
 # MAIN EXECUTION ROUTINE
