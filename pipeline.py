@@ -81,7 +81,7 @@ def get_trending_news():
     return selected_fallback
 
 # ==========================================
-# STEP 1: Multi-Provider AI Engine (Strict AI Topic & Length)
+# STEP 1: Multi-Provider AI Engine (Strict AI Topic, High-CTR Titles)
 # ==========================================
 def generate_dual_scripts():
     print("🧠 Step 1: Generating Animated Multi-Slide AI & Tech News Package...")
@@ -91,36 +91,37 @@ def generate_dual_scripts():
     news_context = get_trending_news()
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    prompt = f"""You are a professional AI & Technology news anchor for YouTube.
+    prompt = f"""You are an elite YouTube AI content creator specializing in viral, high-CTR AI & Tech news.
 Timestamp Seed: {current_time}
 Context: {news_context}
 
-CRITICAL MANDATE:
-- Topic MUST be strictly about Artificial Intelligence, LLMs, Robotics, Microchips, or Emerging Tech.
-- Generate TWO distinct content packages:
-  1. "short": 5 slides, total 90-120 words (~40-50 seconds spoken audio).
-  2. "long": 8-10 slides, total 280-350 words (~90-120 seconds spoken audio).
+CRITICAL DIRECTIVES:
+1. Titles MUST be high-CTR, viral, and catchy (use strong hooks like "MUST SEE", "INSANE", "BREAKTHROUGH", "UNVEILED").
+2. Topic MUST be strictly about Artificial Intelligence, LLMs, Robotics, Microchips, or Emerging Tech.
+3. Content structure:
+   - "short": 5 distinct slide scenes, total 90-120 words (~45 seconds spoken audio).
+   - "long": 8-10 distinct slide scenes, total 280-350 words (~1.5-2 minutes spoken audio).
 
 Return ONLY a valid JSON object with this exact structure:
 {{
   "short": {{
-    "title": "Short Catchy Headline | AI News #Shorts",
+    "title": "INSANE AI Breakthrough Unveiled! What You Need To Know | #Shorts",
     "description": "Quick breakdown of latest AI news. #Shorts #AINews #Tech",
-    "tags": ["AI News", "Shorts", "Tech"],
+    "tags": ["AI News", "Shorts", "Tech", "Artificial Intelligence"],
     "slides": [
-      {{"text": "Breaking news in artificial intelligence as researchers announce a massive breakthrough in autonomous models.", "prompt": "glowing cybernetic AI brain, dark cyan neon 8k", "badge": "BREAKING AI NEWS"}},
-      {{"text": "This new architecture allows AI systems to process complex reasoning tasks up to ten times faster than previous generations.", "prompt": "humanoid robot working at holographic terminal", "badge": "NEURAL BREAKTHROUGH"}},
-      {{"text": "Major tech leaders report that this innovation will accelerate enterprise automation across software and biotech industries.", "prompt": "quantum computing server room glowing blue data streams", "badge": "INDUSTRY IMPACT"}},
-      {{"text": "As deployment expands globally, experts predict a fundamental shift in how human engineers collaborate with artificial intelligence.", "prompt": "futuristic city skyline at night floating glowing network", "badge": "FUTURE OUTLOOK"}},
-      {{"text": "Subscribe to FutureTech Pulse for daily breaking artificial intelligence updates!", "prompt": "futuristic neon subscribe button circuit background", "badge": "SUBSCRIBE NOW"}}
+      {{"text": "Breaking news in artificial intelligence as researchers unveil a massive breakthrough in autonomous neural networks.", "prompt": "glowing cybernetic AI brain, dark cyan neon 8k", "badge": "BREAKING AI NEWS"}},
+      {{"text": "This new architecture allows AI models to solve complex reasoning problems ten times faster than previous systems.", "prompt": "humanoid robot working at holographic terminal", "badge": "NEURAL BREAKTHROUGH"}},
+      {{"text": "Tech leaders report that this innovation will accelerate enterprise automation across software engineering and biotech.", "prompt": "quantum computing server room glowing blue data streams", "badge": "INDUSTRY IMPACT"}},
+      {{"text": "As deployment expands globally, computer scientists predict a fundamental shift in how human engineers collaborate with AI.", "prompt": "futuristic city skyline at night floating glowing network", "badge": "FUTURE OUTLOOK"}},
+      {{"text": "Subscribe to FutureTech Pulse right now for daily breaking artificial intelligence news!", "prompt": "futuristic neon subscribe button circuit background", "badge": "SUBSCRIBE NOW"}}
     ]
   }},
   "long": {{
-    "title": "In-Depth Analysis: The Next Era of Artificial Intelligence | FutureTech Pulse",
+    "title": "MUST SEE: How Next-Gen AI Models Are Changing Technology Forever | FutureTech Pulse",
     "description": "Comprehensive 2-minute deep dive into recent artificial intelligence breakthroughs and industry implications.",
     "tags": ["AI Breakthrough", "Artificial Intelligence", "Tech News", "FutureTech"],
     "slides": [
-      {{"text": "Welcome to FutureTech Pulse. Today we are exploring a milestone development in artificial intelligence.", "prompt": "futuristic glowing cybernetic AI brain 8k", "badge": "AI DEEP DIVE"}},
+      {{"text": "Welcome to FutureTech Pulse. Today we are exploring an unprecedented milestone development in artificial intelligence.", "prompt": "futuristic glowing cybernetic AI brain 8k", "badge": "AI DEEP DIVE"}},
       {{"text": "Engineers and computer scientists have officially unveiled a novel neural network architecture built for extreme scalability.", "prompt": "high tech robotics laboratory dark aesthetic", "badge": "NEURAL ARCHITECTURE"}},
       {{"text": "Unlike traditional transformer models, this new framework reduces computational overhead while dramatically boosting reasoning accuracy.", "prompt": "floating holographic code matrix glowing cyan", "badge": "SOFTWARE INNOVATION"}},
       {{"text": "In benchmark evaluations, the model demonstrated unprecedented capability in autonomous software development and scientific research.", "prompt": "supercomputer server room glowing neon circuit trails", "badge": "BENCHMARK PERFORMANCE"}},
@@ -179,7 +180,7 @@ Return ONLY a valid JSON object with this exact structure:
                 except Exception as err:
                     print(f"   ⚠️ Groq model '{model}' skipped: {err}")
         except Exception as e:
-            print(f"   ⚠️️ Groq API error: {e}")
+            print(f"   ⚠️ Groq API error: {e}")
 
     # --- PROVIDER 3: OpenRouter API ---
     if openrouter_key:
@@ -204,7 +205,7 @@ Return ONLY a valid JSON object with this exact structure:
     print("   ⚠️ All remote AI providers busy. Using Fail-Safe AI Template Engine...")
     return {
         "short": {
-            "title": "Next-Gen Autonomous AI Models Unveiled | #Shorts",
+            "title": "INSANE Next-Gen Autonomous AI Models Unveiled! | #Shorts",
             "description": "Quick breakdown of major developments in artificial intelligence and autonomous systems. #Shorts #AINews #Tech",
             "tags": ["AI News", "Shorts", "Tech", "Artificial Intelligence"],
             "slides": [
@@ -216,7 +217,7 @@ Return ONLY a valid JSON object with this exact structure:
             ]
         },
         "long": {
-            "title": "In-Depth Analysis: How Next-Gen AI Models Are Revolutionizing Tech | FutureTech Pulse",
+            "title": "MUST SEE: How Next-Gen AI Models Are Revolutionizing Tech | FutureTech Pulse",
             "description": "Comprehensive deep dive into recent artificial intelligence breakthroughs, neural architectures, and enterprise impact.",
             "tags": ["AI Breakthrough", "Artificial Intelligence", "Tech News", "FutureTech"],
             "slides": [
@@ -233,14 +234,13 @@ Return ONLY a valid JSON object with this exact structure:
     }
 
 # ==========================================
-# STEP 2: Speech Synthesis & Audio Mixer
+# STEP 2: Per-Slide Voiceover Generator
 # ==========================================
-async def create_voiceover(text, output_file):
-    print(f"🎙️ Synthesizing speech -> {output_file}...")
+async def synthesize_slide_audio(text, output_file):
     voice = "en-US-ChristopherNeural"
     communicate = edge_tts.Communicate(text, voice)
     await communicate.save(output_file)
-    print("   Speech synthesized successfully.")
+    return output_file
 
 def get_background_music(output_file="bg_music.mp3"):
     if os.path.exists(output_file):
@@ -258,7 +258,7 @@ def get_background_music(output_file="bg_music.mp3"):
     return None
 
 # ==========================================
-# STEP 3: High-CTR Custom Thumbnail Generators
+# STEP 3: High-CTR Custom Thumbnail Generator
 # ==========================================
 def generate_thumbnail(title_text, badge_text, is_short=False, output_file="thumbnail.png"):
     width, height = (1080, 1920) if is_short else (1280, 720)
@@ -287,7 +287,7 @@ def generate_thumbnail(title_text, badge_text, is_short=False, output_file="thum
     clean_title = sanitize_text(title_text)
 
     if is_short:
-        # Vertical 9:16 Thumbnail Overlay
+        # Vertical 9:16 Thumbnail
         draw.rectangle([(60, 160), (1020, 280)], fill=(244, 63, 94, 240))
         draw.text((100, 200), clean_badge, fill=(255, 255, 255))
         
@@ -304,11 +304,11 @@ def generate_thumbnail(title_text, badge_text, is_short=False, output_file="thum
             
         y_off = 1240
         for line in lines[:5]:
-            draw.text((90, y_off), line, fill=(250, 204, 21))
+            draw.text((90, y_off), line, fill=(250, 204, 21)) # High-CTR Yellow Text
             y_off += 65
     else:
-        # Widescreen 16:9 Thumbnail Overlay
-        draw.rectangle([(80, 80), (600, 160)], fill=(244, 63, 94, 240))
+        # Widescreen 16:9 Thumbnail
+        draw.rectangle([(80, 80), (650, 160)], fill=(244, 63, 94, 240))
         draw.text((110, 105), f"HOT: {clean_badge}", fill=(255, 255, 255))
         
         draw.rectangle([(80, 220), (1200, 580)], fill=(15, 23, 42, 230), outline=(56, 189, 248), width=4)
@@ -324,7 +324,7 @@ def generate_thumbnail(title_text, badge_text, is_short=False, output_file="thum
             
         y_off = 250
         for line in lines[:4]:
-            draw.text((110, y_off), line, fill=(250, 204, 21))
+            draw.text((110, y_off), line, fill=(250, 204, 21)) # High-CTR Yellow Text
             y_off += 70
 
     base_img = base_img.convert("RGB")
@@ -333,27 +333,14 @@ def generate_thumbnail(title_text, badge_text, is_short=False, output_file="thum
     return output_file
 
 # ==========================================
-# STEP 4: True Frame-by-Frame Motion Zoom Video Engine
+# STEP 4: Per-Slide Synchronized Motion Video Engine
 # ==========================================
-def render_multislide_video(title_text, slides, audio_file, is_short=True, output_file="video.mp4"):
+def render_multislide_video(title_text, slides, is_short=True, output_file="video.mp4"):
     width, height = (1080, 1920) if is_short else (1920, 1080)
-    print(f"🎬 Rendering Animated Multi-Slide Video ({width}x{height}) with {len(slides)} scenes...")
-
-    voice_audio = AudioFileClip(audio_file)
-    total_duration = voice_audio.duration
-    slide_dur = total_duration / len(slides)
-    print(f"   Total Audio Duration: {total_duration:.1f}s | Slide Duration: {slide_dur:.1f}s across {len(slides)} slides.")
+    prefix = "short" if is_short else "long"
+    print(f"🎬 Rendering Synchronized Multi-Slide Video ({width}x{height}) with {len(slides)} scenes...")
 
     bg_music_file = get_background_music()
-    if bg_music_file:
-        try:
-            bg_music = AudioFileClip(bg_music_file).volumex(0.08).set_duration(total_duration)
-            final_audio = CompositeAudioClip([voice_audio, bg_music])
-        except Exception:
-            final_audio = voice_audio
-    else:
-        final_audio = voice_audio
-
     slide_clips = []
 
     for idx, slide in enumerate(slides):
@@ -361,27 +348,37 @@ def render_multislide_video(title_text, slides, audio_file, is_short=True, outpu
         slide_prompt = sanitize_text(slide.get("prompt", "futuristic AI technology dark"))
         slide_badge = sanitize_text(slide.get("badge", "FUTURETECH AI"))
 
-        encoded_prompt = urllib.parse.quote(f"{slide_prompt}, dark cyber aesthetic 8k")
+        # 1. Synthesize exact voiceover audio for THIS specific slide
+        audio_path = f"voice_{prefix}_slide_{idx}.mp3"
+        asyncio.run(synthesize_slide_audio(slide_text, audio_path))
+        
+        slide_audio = AudioFileClip(audio_path)
+        slide_dur = max(slide_audio.duration, 2.0)
+        print(f"   Slide {idx+1}/{len(slides)}: Spoken Duration = {slide_dur:.2f}s | Badge = '{slide_badge}'")
+
+        # 2. Fetch unique background image for this slide
+        encoded_prompt = urllib.parse.quote(f"{slide_prompt}, dark cyber aesthetic 8k high quality")
         img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true"
-        file_path = f"slide_{'short' if is_short else 'long'}_{idx}.png"
+        img_path = f"slide_{prefix}_{idx}.png"
 
         try:
             res = requests.get(img_url, timeout=12)
             if res.status_code == 200:
-                with open(file_path, "wb") as f:
+                with open(img_path, "wb") as f:
                     f.write(res.content)
             else:
-                raise ValueError("Image download non-200")
+                raise ValueError("Download non-200")
         except Exception:
             img = PIL.Image.new('RGB', (width, height), color=(15, 23, 42))
-            img.save(file_path)
+            img.save(img_path)
 
+        # 3. Create Lower-Third Caption Overlay for this slide
         overlay_img = PIL.Image.new('RGBA', (width, height), color=(0, 0, 0, 0))
         draw = PIL.ImageDraw.Draw(overlay_img)
 
         if is_short:
             draw.rectangle([(80, 140), (1000, 230)], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=3)
-            draw.text((120, 168), slide_badge[:30], fill=(56, 189, 248))
+            draw.text((120, 168), slide_badge[:30].upper(), fill=(56, 189, 248))
 
             draw.rectangle([(80, 1280), (1000, 1680)], fill=(15, 23, 42, 220), outline=(56, 189, 248), width=2)
             words = slide_text.split()
@@ -403,8 +400,8 @@ def render_multislide_video(title_text, slides, audio_file, is_short=True, outpu
             draw.text((180, 1750), "SUBSCRIBE FOR DAILY AI NEWS", fill=(15, 23, 42))
 
         else: # Widescreen 16:9
-            draw.rectangle([(100, 60), (700, 130)], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=2)
-            draw.text((130, 82), f"FUTURETECH AI | {slide_badge[:25]}", fill=(56, 189, 248))
+            draw.rectangle([(100, 60), (750, 130)], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=2)
+            draw.text((130, 82), f"FUTURETECH AI | {slide_badge[:25].upper()}", fill=(56, 189, 248))
 
             draw.rectangle([(100, 720), (1820, 960)], fill=(15, 23, 42, 220), outline=(56, 189, 248), width=2)
             words = slide_text.split()
@@ -425,11 +422,14 @@ def render_multislide_video(title_text, slides, audio_file, is_short=True, outpu
             draw.rectangle([(100, 980), (1820, 1040)], fill=(56, 189, 248, 230))
             draw.text((650, 995), "SUBSCRIBE FOR DAILY IN-DEPTH AI COVERAGE", fill=(15, 23, 42))
 
-        base_pil = PIL.Image.open(file_path).convert("RGBA").resize((width, height))
+        # 4. Compose Base Image + Overlay
+        base_pil = PIL.Image.open(img_path).convert("RGBA").resize((width, height))
         composed_pil = PIL.Image.alpha_composite(base_pil, overlay_img).convert("RGB")
 
+        # 5. Continuous Smooth Ken Burns Motion Zoom Frame Generator
         def make_animated_frame(t, pil_img=composed_pil, dur=slide_dur, w=width, h=height):
-            scale = 1.0 + 0.12 * (t / max(dur, 0.1))
+            progress = min(t / max(dur, 0.1), 1.0)
+            scale = 1.0 + 0.15 * progress
             w_scaled, h_scaled = int(w * scale), int(h * scale)
             resized = pil_img.resize((w_scaled, h_scaled), PIL.Image.LANCZOS)
             
@@ -437,20 +437,32 @@ def render_multislide_video(title_text, slides, audio_file, is_short=True, outpu
             crop_y = (h_scaled - h) // 2
             cropped = resized.crop((crop_x, crop_y, crop_x + w, crop_y + h))
             
+            # Progress bar synced to slide audio timing
             frame_draw = PIL.ImageDraw.Draw(cropped)
-            progress_ratio = min(t / max(dur, 0.1), 1.0)
             bar_y = h - 25 if is_short else h - 15
-            frame_draw.rectangle([(0, bar_y), (int(w * progress_ratio), bar_y + 15)], fill=(56, 189, 248))
+            frame_draw.rectangle([(0, bar_y), (int(w * progress), bar_y + 15)], fill=(56, 189, 248))
             
             return np.array(cropped)
 
         scene_clip = VideoClip(make_animated_frame, duration=slide_dur)
+        scene_clip = scene_clip.set_audio(slide_audio)
         slide_clips.append(scene_clip)
 
-    final_video = concatenate_videoclips(slide_clips, method="compose")
-    final_video = final_video.set_audio(final_audio)
-    final_video.write_videofile(output_file, fps=24, codec="libx264", audio_codec="aac")
-    print(f"   ✅ Motion Animated Video rendered: {output_file}")
+    # 6. Concatenate all perfectly synced slide clips
+    full_video = concatenate_videoclips(slide_clips, method="compose")
+
+    # Add background music overlay across full video duration
+    if bg_music_file:
+        try:
+            total_dur = full_video.duration
+            bg_music = AudioFileClip(bg_music_file).volumex(0.07).set_duration(total_dur)
+            final_audio = CompositeAudioClip([full_video.audio, bg_music])
+            full_video = full_video.set_audio(final_audio)
+        except Exception as e:
+            print(f"   ⚠️ Music overlay note: {e}")
+
+    full_video.write_videofile(output_file, fps=24, codec="libx264", audio_codec="aac")
+    print(f"   ✅ Synchronized Motion Video rendered: {output_file}")
     return output_file
 
 # ==========================================
@@ -505,7 +517,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
             youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_file)).execute()
             print("   ✅ Custom thumbnail published successfully!")
         except Exception as e:
-            print(f"   ⚠️ Could not set thumbnail ({e}). (Ensure YouTube channel is phone verified for custom thumbnails).")
+            print(f"   ⚠️ Could not set thumbnail ({e}). Ensure YouTube channel is phone-verified for custom thumbnails.")
 
     return video_id
 
@@ -518,15 +530,12 @@ if __name__ == "__main__":
     # 1. Render & Upload Short Video (9:16 Vertical)
     short_data = pkg["short"]
     short_slides = short_data.get("slides", [])
-    short_full_script = " ".join([s.get("text", "") for s in short_slides])
-    asyncio.run(create_voiceover(short_full_script, "voice_short.mp3"))
     
     thumb_short = generate_thumbnail(short_data["title"], "BREAKING AI", is_short=True, output_file="thumb_short.png")
     
     short_file = render_multislide_video(
         short_data["title"], 
         short_slides, 
-        "voice_short.mp3", 
         is_short=True, 
         output_file="short_video.mp4"
     )
@@ -535,15 +544,12 @@ if __name__ == "__main__":
     # 2. Render & Upload Long Video (16:9 Widescreen)
     long_data = pkg["long"]
     long_slides = long_data.get("slides", [])
-    long_full_script = " ".join([s.get("text", "") for s in long_slides])
-    asyncio.run(create_voiceover(long_full_script, "voice_long.mp3"))
     
     thumb_long = generate_thumbnail(long_data["title"], "AI BREAKTHROUGH", is_short=False, output_file="thumb_long.png")
     
     long_file = render_multislide_video(
         long_data["title"], 
         long_slides, 
-        "voice_long.mp3", 
         is_short=False, 
         output_file="long_video.mp4"
     )
