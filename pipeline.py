@@ -10,11 +10,11 @@ from datetime import datetime
 from google import genai
 from google.genai import types
 from groq import Groq
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 import edge_tts
 from moviepy.editor import (
-    ImageClip, AudioFileClip, VideoFileClip, 
-    CompositeVideoClip, CompositeAudioClip, concatenate_videoclips
+    ImageClip, AudioFileClip, CompositeVideoClip, 
+    CompositeAudioClip, concatenate_videoclips
 )
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -48,7 +48,6 @@ def get_trending_news():
         print(f"   ✅ Selected Live News Context: {selected_news[:80]}...")
         return selected_news
     
-    # Fallback if feeds are unreachable
     fallback_topics = [
         "Humanoid Robotics Breakthroughs",
         "Autonomous AI Coding Agents",
@@ -58,7 +57,7 @@ def get_trending_news():
     return f"Topic: {random.choice(fallback_topics)}"
 
 # ==========================================
-# FEATURE 2: AI Script Generation (Gemini + Groq Failover)
+# FEATURE 2: AI Script Generation (Gemini Retries + Groq Fix)
 # ==========================================
 def generate_script():
     print("🧠 Step 1: Requesting educational script & visual prompts from AI...")
@@ -87,46 +86,82 @@ Return ONLY a JSON object with this exact structure:
   "script": "Full 40-second spoken narration script goes here..."
 }}"""
 
-    # Primary Provider: Gemini API
+    # --- PRIMARY PROVIDER: Gemini API with Retries + Discovery ---
     if gemini_key:
         try:
             client = genai.Client(api_key=gemini_key)
-            response = client.models.generate_content(
-                model="gemini-3.8-flash",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                ),
-            )
-            content = json.loads(response.text.strip())
-            print(f"   ✅ Gemini success! Title: {content['title']}")
-            return content
-        except Exception as e:
-            print(f"   ⚠️ Gemini failed ({e}). Switching to Groq fallback...")
+            for attempt in range(1, 4):
+                try:
+                    print(f"   Attempting Primary Provider: Gemini API (gemini-3.8-flash, Try {attempt}/3)...")
+                    response = client.models.generate_content(
+                        model="gemini-3.8-flash",
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                        ),
+                    )
+                    content = json.loads(response.text.strip())
+                    print(f"   ✅ Gemini success! Title: {content['title']}")
+                    return content
+                except Exception as e:
+                    print(f"   ⚠️ Gemini gemini-3.8-flash attempt {attempt} failed: {e}")
+                    if attempt < 3:
+                        print("   Pausing 10 seconds before retrying Gemini...")
+                        time.sleep(10)
 
-    # Backup Provider: Groq API
+            # Dynamic Gemini Model Discovery Fallback
+            print("   ⚠️ gemini-3.8-flash unavailable. Discovering active Gemini models...")
+            for m in client.models.list():
+                model_id = m.name.replace("models/", "")
+                if "flash" in model_id or "pro" in model_id:
+                    try:
+                        print(f"   Trying Gemini model: '{model_id}'...")
+                        response = client.models.generate_content(
+                            model=model_id,
+                            contents=prompt,
+                            config=types.GenerateContentConfig(
+                                response_mime_type="application/json",
+                            ),
+                        )
+                        content = json.loads(response.text.strip())
+                        print(f"   ✅ Gemini ('{model_id}') success! Title: {content['title']}")
+                        return content
+                    except Exception as err:
+                        print(f"   ⚠️ Gemini model '{model_id}' failed: {err}")
+        except Exception as e:
+            print(f"   ⚠️ Gemini API initialization error: {e}")
+
+    # --- BACKUP PROVIDER: Groq API (Fixed Indexing) ---
     if groq_key:
         try:
+            print("   Attempting Backup Provider: Groq API...")
             groq_client = Groq(api_key=groq_key)
             models_data = groq_client.models.list().data
             active_models = [m.id for m in models_data if "whisper" not in m.id and "safetensors" not in m.id]
 
             for model in active_models:
                 try:
+                    print(f"   Trying Groq model: '{model}'...")
                     completion = groq_client.chat.completions.create(
                         model=model,
                         messages=[{"role": "user", "content": prompt}],
-                        response_format={"type": "json_object"},
                     )
-                    content = json.loads(completion.choices.message.content.strip())
-                    print(f"   ✅ Groq ({model}) success! Title: {content['title']}")
+                    raw_text = completion.choices[0].message.content.strip()
+                    if "```json" in raw_text:
+                        raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+                    elif "```" in raw_text:
+                        raw_text = raw_text.split("```")[1].split("```")[0].strip()
+                    content = json.loads(raw_text)
+                    print(f"   ✅ Groq ('{model}') success! Title: {content['title']}")
                     return content
-                except Exception:
-                    pass
+                except Exception as err:
+                    print(f"   ⚠️ Groq model '{model}' failed: {err}")
         except Exception as e:
             print(f"   ⚠️ Groq API error: {e}")
+    else:
+        print("   ⚠️ GROQ_API_KEY environment variable is not set or empty in GitHub.")
 
-    raise RuntimeError("❌ Both Gemini and Groq AI attempts failed.")
+    raise RuntimeError("❌ Both Gemini and Groq AI attempts failed. Please verify API keys.")
 
 # ==========================================
 # FEATURE 3: Neural Voiceover & Royalty-Free Music
@@ -155,7 +190,7 @@ def get_background_music(output_file="bg_music.mp3"):
     return None
 
 # ==========================================
-# FEATURE 4: Dynamic 9:16 Visual Backgrounds (AI Images / Pexels)
+# FEATURE 4: Dynamic 9:16 Visual Backgrounds
 # ==========================================
 def download_ai_images(prompts, total_duration):
     print("🖼️ Generating 9:16 AI background image slideshow via Pollinations.ai...")
@@ -177,7 +212,6 @@ def download_ai_images(prompts, total_duration):
             print(f"   ⚠️ AI Image download error: {e}")
 
     if not image_paths:
-        # Fallback solid canvas if network times out
         img = Image.new('RGB', (1080, 1920), color=(15, 23, 42))
         img.save("fallback_bg.png")
         image_paths.append(("fallback_bg.png", total_duration))
@@ -196,7 +230,6 @@ def create_video(title_text, script_text, image_prompts, audio_file="voiceover.m
     voice_audio = AudioFileClip(audio_file)
     duration = voice_audio.duration
     
-    # Mix Speech + Quiet Background Music
     bg_music_file = get_background_music()
     if bg_music_file:
         try:
@@ -207,10 +240,8 @@ def create_video(title_text, script_text, image_prompts, audio_file="voiceover.m
     else:
         final_audio = voice_audio
 
-    # Render Visual Background Clips
     bg_video_clip = download_ai_images(image_prompts, duration)
 
-    # Render Semi-Transparent Subtitle Card Overlay
     overlay_img = Image.new('RGBA', (1080, 1920), color=(0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay_img)
     
@@ -222,7 +253,7 @@ def create_video(title_text, script_text, image_prompts, audio_file="voiceover.m
     draw.rectangle([(80, 280), (1000, 540)], fill=(15, 23, 42, 230))
     draw.text((100, 340), title_text[:75], fill=(255, 255, 255))
     
-    # Subtitles / Script Card
+    # Subtitles Card
     draw.rectangle([(80, 580), (1000, 1600)], fill=(15, 23, 42, 220))
     draw.text((120, 620), "BREAKING NEWS SUMMARY:", fill=(244, 63, 94))
     
@@ -241,7 +272,7 @@ def create_video(title_text, script_text, image_prompts, audio_file="voiceover.m
         draw.text((120, y_offset), line, fill=(226, 232, 240))
         y_offset += 52
         
-    # Bottom Call to Action
+    # Call to Action
     draw.rectangle([(80, 1650), (1000, 1780)], fill=(56, 189, 248, 240))
     draw.text((180, 1700), "SUBSCRIBE FOR DAILY AI NEWS", fill=(15, 23, 42))
     
@@ -250,7 +281,6 @@ def create_video(title_text, script_text, image_prompts, audio_file="voiceover.m
     
     overlay_clip = ImageClip(overlay_path).set_duration(duration)
     
-    # Composite Background + Subtitle Card
     final_video = CompositeVideoClip([bg_video_clip, overlay_clip])
     final_video = final_video.set_audio(final_audio)
     final_video.write_videofile(output_file, fps=24, codec="libx264", audio_codec="aac")
