@@ -179,7 +179,7 @@ Return ONLY a valid JSON object with this exact structure:
                 except Exception as err:
                     print(f"   ⚠️ Groq model '{model}' skipped: {err}")
         except Exception as e:
-            print(f"   ⚠️ Groq API error: {e}")
+            print(f"   ⚠️️ Groq API error: {e}")
 
     # --- PROVIDER 3: OpenRouter API ---
     if openrouter_key:
@@ -264,7 +264,6 @@ def generate_thumbnail(title_text, badge_text, is_short=False, output_file="thum
     width, height = (1080, 1920) if is_short else (1280, 720)
     print(f"🎨 Generating High-CTR Thumbnail ({width}x{height}) -> {output_file}...")
     
-    # 1. Fetch AI visual backdrop
     encoded_prompt = urllib.parse.quote("futuristic AI brain glowing cybernetic neon dark 8k high quality render")
     img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true"
     
@@ -284,13 +283,16 @@ def generate_thumbnail(title_text, badge_text, is_short=False, output_file="thum
     # Outer Neon Border
     draw.rectangle([(20, 20), (width-20, height-20)], outline=(56, 189, 248), width=6)
     
+    clean_badge = sanitize_text(badge_text).upper()
+    clean_title = sanitize_text(title_text)
+
     if is_short:
         # Vertical 9:16 Thumbnail Overlay
         draw.rectangle([(60, 160), (1020, 280)], fill=(244, 63, 94, 240))
-        draw.text((100, 200), sanitize_text(badge_text).upper(), fill=(255, 255, 255))
+        draw.text((100, 200), clean_badge, fill=(255, 255, 255))
         
         draw.rectangle([(60, 1200), (1020, 1680)], fill=(15, 23, 42, 235), outline=(250, 204, 21), width=4)
-        words = sanitize_text(title_text).split()
+        words = clean_title.split()
         lines, current_line = [], []
         for word in words:
             current_line.append(word)
@@ -302,15 +304,15 @@ def generate_thumbnail(title_text, badge_text, is_short=False, output_file="thum
             
         y_off = 1240
         for line in lines[:5]:
-            draw.text((90, y_off), line, fill=(250, 204, 21)) # High-CTR Yellow Text
+            draw.text((90, y_off), line, fill=(250, 204, 21))
             y_off += 65
     else:
         # Widescreen 16:9 Thumbnail Overlay
         draw.rectangle([(80, 80), (600, 160)], fill=(244, 63, 94, 240))
-        draw.text((110, 105), f"🔥 {sanitize_text(badge_text).upper()}", fill=(255, 255, 255))
+        draw.text((110, 105), f"HOT: {clean_badge}", fill=(255, 255, 255))
         
         draw.rectangle([(80, 220), (1200, 580)], fill=(15, 23, 42, 230), outline=(56, 189, 248), width=4)
-        words = sanitize_text(title_text).split()
+        words = clean_title.split()
         lines, current_line = [], []
         for word in words:
             current_line.append(word)
@@ -322,7 +324,7 @@ def generate_thumbnail(title_text, badge_text, is_short=False, output_file="thum
             
         y_off = 250
         for line in lines[:4]:
-            draw.text((110, y_off), line, fill=(250, 204, 21)) # High-CTR Yellow Text
+            draw.text((110, y_off), line, fill=(250, 204, 21))
             y_off += 70
 
     base_img = base_img.convert("RGB")
@@ -359,7 +361,6 @@ def render_multislide_video(title_text, slides, audio_file, is_short=True, outpu
         slide_prompt = sanitize_text(slide.get("prompt", "futuristic AI technology dark"))
         slide_badge = sanitize_text(slide.get("badge", "FUTURETECH AI"))
 
-        # 1. Download unique image for this slide
         encoded_prompt = urllib.parse.quote(f"{slide_prompt}, dark cyber aesthetic 8k")
         img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true"
         file_path = f"slide_{'short' if is_short else 'long'}_{idx}.png"
@@ -375,7 +376,6 @@ def render_multislide_video(title_text, slides, audio_file, is_short=True, outpu
             img = PIL.Image.new('RGB', (width, height), color=(15, 23, 42))
             img.save(file_path)
 
-        # 2. Render Overlay Card
         overlay_img = PIL.Image.new('RGBA', (width, height), color=(0, 0, 0, 0))
         draw = PIL.ImageDraw.Draw(overlay_img)
 
@@ -425,11 +425,9 @@ def render_multislide_video(title_text, slides, audio_file, is_short=True, outpu
             draw.rectangle([(100, 980), (1820, 1040)], fill=(56, 189, 248, 230))
             draw.text((650, 995), "SUBSCRIBE FOR DAILY IN-DEPTH AI COVERAGE", fill=(15, 23, 42))
 
-        # 3. Combine Base Background & Overlay Card
         base_pil = PIL.Image.open(file_path).convert("RGBA").resize((width, height))
         composed_pil = PIL.Image.alpha_composite(base_pil, overlay_img).convert("RGB")
 
-        # 4. Continuous Ken Burns Motion Zoom Frame Generator (Guaranteed Animated Output)
         def make_animated_frame(t, pil_img=composed_pil, dur=slide_dur, w=width, h=height):
             scale = 1.0 + 0.12 * (t / max(dur, 0.1))
             w_scaled, h_scaled = int(w * scale), int(h * scale)
@@ -439,7 +437,6 @@ def render_multislide_video(title_text, slides, audio_file, is_short=True, outpu
             crop_y = (h_scaled - h) // 2
             cropped = resized.crop((crop_x, crop_y, crop_x + w, crop_y + h))
             
-            # Draw real-time animated glowing progress bar across screen bottom
             frame_draw = PIL.ImageDraw.Draw(cropped)
             progress_ratio = min(t / max(dur, 0.1), 1.0)
             bar_y = h - 25 if is_short else h - 15
