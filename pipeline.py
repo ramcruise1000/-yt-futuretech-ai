@@ -52,7 +52,6 @@ def get_trending_news():
     ai_keywords = ["ai", "artificial intelligence", "nvidia", "openai", "chip", "robot", "quantum", "llm", "software agent", "neural", "deep learning", "machine learning", "anthropic", "gemini", "gpt", "model", "algorithm", "supercomputer"]
     news_items = []
 
-    # Seed random with current microsecond timestamp to guarantee unique selection every run
     random.seed(int(time.time() * 1000))
 
     for url in rss_feeds:
@@ -73,23 +72,21 @@ def get_trending_news():
     if news_items:
         random.shuffle(news_items)
         selected_news = news_items[0]
-        print(f"   ✅ Selected AI & Tech Context ({len(news_items)} available): {selected_news[:90]}...")
+        print(f"   ✅ Selected AI & Tech Context: {selected_news[:90]}...")
         return selected_news
     
-    # Diverse Dynamic Fallback Pool if RSS is unavailable
     dynamic_fallbacks = [
         "Headline: OpenAI Advances Autonomous AI Coding Agents | Summary: Next-generation neural models automate end-to-end software engineering workflows with self-correcting reasoning.",
         "Headline: NVIDIA Unveils Next-Gen Blackwell Supercomputing Architecture | Summary: Massive GPU clusters accelerate multi-trillion parameter LLM training and real-time world simulation.",
         "Headline: Humanoid AI Robotics Breakthrough in Autonomous Industrial Dexterity | Summary: Neural network control enables vision-guided precision manipulation in manufacturing.",
-        "Headline: Quantum AI Synergy Achieves Million-Qubit Benchmark | Summary: Hybrid quantum-classical algorithms solve complex protein folding and materials discovery in seconds.",
-        "Headline: Open Source AI Models Match Proprietary Frontiers in Reasoning | Summary: New open-weights LLMs deliver state-of-the-art coding and mathematical performance with zero API cost."
+        "Headline: Quantum AI Synergy Achieves Million-Qubit Benchmark | Summary: Hybrid quantum-classical algorithms solve complex protein folding and materials discovery in seconds."
     ]
     selected_fallback = random.choice(dynamic_fallbacks)
     print(f"   ✅ Selected Fallback AI Topic: {selected_fallback[:90]}...")
     return selected_fallback
 
 # ==========================================
-# STEP 1: Multi-Provider AI Engine with Dynamic Fallback Generator
+# STEP 1: Multi-Provider AI Engine
 # ==========================================
 def generate_dual_scripts():
     print("🧠 Step 1: Generating Animated Multi-Slide AI & Tech News Package...")
@@ -100,13 +97,13 @@ def generate_dual_scripts():
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
 
     prompt = f"""You are an elite YouTube AI content creator specializing in viral, high-CTR AI & Tech news.
-Randomization Timestamp Seed: {current_time}
+Randomization Seed: {current_time}
 Context: {news_context}
 
 CRITICAL DIRECTIVES:
-1. Every run MUST produce UNIQUE, fresh content. Do NOT repeat previous scripts or headlines.
+1. Every run MUST produce UNIQUE, fresh content based on the news context.
 2. Titles MUST be viral, high-CTR hooks (e.g. "INSANE AI Breakthrough", "JUST UNVEILED", "THIS CHANGES EVERYTHING").
-3. Topic MUST be strictly about Artificial Intelligence, LLMs, Robotics, Microchips, or Emerging Tech.
+3. Prompts for thumbnails and slides MUST describe vivid, dynamic visual scenes tailored specifically to the story topic.
 4. Content structure:
    - "short": 5 distinct slide scenes, total 90-120 words (~45 seconds spoken audio).
    - "long": 8-10 distinct slide scenes, total 280-350 words (~1.5-2 minutes spoken audio).
@@ -116,27 +113,29 @@ Return ONLY a valid JSON object with this exact structure:
   "short": {{
     "title": "Viral Headline | AI News #Shorts",
     "description": "Quick breakdown of latest AI news. #Shorts #AINews #Tech",
+    "thumb_prompt": "Specific high impact 8k visual prompt matching this news story",
     "tags": ["AI News", "Shorts", "Tech", "Artificial Intelligence"],
     "slides": [
-      {{"text": "Slide 1 sentence...", "prompt": "image prompt 1", "badge": "BADGE 1"}},
-      {{"text": "Slide 2 sentence...", "prompt": "image prompt 2", "badge": "BADGE 2"}},
-      {{"text": "Slide 3 sentence...", "prompt": "image prompt 3", "badge": "BADGE 3"}},
-      {{"text": "Slide 4 sentence...", "prompt": "image prompt 4", "badge": "BADGE 4"}},
+      {{"text": "Slide 1 sentence...", "prompt": "specific topic visual prompt 1", "badge": "BREAKING AI"}},
+      {{"text": "Slide 2 sentence...", "prompt": "specific topic visual prompt 2", "badge": "NEURAL AGENTS"}},
+      {{"text": "Slide 3 sentence...", "prompt": "specific topic visual prompt 3", "badge": "INDUSTRY IMPACT"}},
+      {{"text": "Slide 4 sentence...", "prompt": "specific topic visual prompt 4", "badge": "FUTURE OUTLOOK"}},
       {{"text": "Subscribe to FutureTech Pulse right now for daily breaking AI news!", "prompt": "futuristic neon subscribe button circuit background", "badge": "SUBSCRIBE NOW"}}
     ]
   }},
   "long": {{
     "title": "Viral High-CTR Widescreen Title | FutureTech Pulse",
-    "description": "Comprehensive 2-minute deep dive into recent artificial intelligence breakthroughs.",
+    "description": "Comprehensive deep dive into recent artificial intelligence breakthroughs.",
+    "thumb_prompt": "Specific high impact 8k widescreen visual prompt matching this deep dive",
     "tags": ["AI Breakthrough", "Artificial Intelligence", "Tech News", "FutureTech"],
     "slides": [
-      {{"text": "Slide 1 sentence...", "prompt": "image prompt 1", "badge": "BADGE 1"}},
-      {{"text": "Slide 2 sentence...", "prompt": "image prompt 2", "badge": "BADGE 2"}},
-      {{"text": "Slide 3 sentence...", "prompt": "image prompt 3", "badge": "BADGE 3"}},
-      {{"text": "Slide 4 sentence...", "prompt": "image prompt 4", "badge": "BADGE 4"}},
-      {{"text": "Slide 5 sentence...", "prompt": "image prompt 5", "badge": "BADGE 5"}},
-      {{"text": "Slide 6 sentence...", "prompt": "image prompt 6", "badge": "BADGE 6"}},
-      {{"text": "Slide 7 sentence...", "prompt": "image prompt 7", "badge": "BADGE 7"}},
+      {{"text": "Slide 1 sentence...", "prompt": "specific topic visual prompt 1", "badge": "AI DEEP DIVE"}},
+      {{"text": "Slide 2 sentence...", "prompt": "specific topic visual prompt 2", "badge": "NEURAL TECH"}},
+      {{"text": "Slide 3 sentence...", "prompt": "specific topic visual prompt 3", "badge": "INNOVATION"}},
+      {{"text": "Slide 4 sentence...", "prompt": "specific topic visual prompt 4", "badge": "BENCHMARKS"}},
+      {{"text": "Slide 5 sentence...", "prompt": "specific topic visual prompt 5", "badge": "INTEGRATION"}},
+      {{"text": "Slide 6 sentence...", "prompt": "specific topic visual prompt 6", "badge": "ALIGNMENT"}},
+      {{"text": "Slide 7 sentence...", "prompt": "specific topic visual prompt 7", "badge": "FUTURE HORIZON"}},
       {{"text": "Make sure to subscribe to FutureTech Pulse for daily comprehensive AI coverage!", "prompt": "futuristic neon subscribe banner cyan dark", "badge": "SUBSCRIBE FOR MORE"}}
     ]
   }}
@@ -213,64 +212,36 @@ Return ONLY a valid JSON object with this exact structure:
 
     # --- PROVIDER 4: Dynamic Procedural Template Generator ---
     print("   ⚠️ All remote AI providers busy. Generating Dynamic Procedural Script Package...")
-    
-    topics_pool = [
-        {
-            "short_title": "JUST UNVEILED: Autonomous AI Models Take Over Coding! | #Shorts",
-            "long_title": "INSANE: Autonomous AI Coding Models Pass Human Benchmarks | FutureTech Pulse",
-            "badge1": "BREAKING AI", "badge2": "NEURAL AGENTS",
-            "focus": "autonomous software engineering models and self-correcting neural code execution"
-        },
-        {
-            "short_title": "NVIDIA Shocking Supercomputing Announcement! | #Shorts",
-            "long_title": "MUST SEE: NVIDIA Next-Gen GPU Architecture Accelerates Trillion-Parameter AI | FutureTech Pulse",
-            "badge1": "GPU BREAKTHROUGH", "badge2": "SUPERCOMPUTING",
-            "focus": "next-generation microchip architectures and trillion-parameter artificial intelligence clusters"
-        },
-        {
-            "short_title": "THIS CHANGES EVERYTHING: Humanoid AI Robots Dexterity Leap! | #Shorts",
-            "long_title": "REVOLUTIONARY: Humanoid AI Robotics Achieve Precision Industrial Assembly | FutureTech Pulse",
-            "badge1": "ROBOTICS AI", "badge2": "AUTONOMOUS DEXTERITY",
-            "focus": "humanoid robotics control system breakthroughs and spatial neural network reasoning"
-        },
-        {
-            "short_title": "Quantum AI Fusion Benchmark Shattered! | #Shorts",
-            "long_title": "UNBELIEVABLE: Hybrid Quantum AI Algorithms Solve Complex Physics in Seconds | FutureTech Pulse",
-            "badge1": "QUANTUM AI", "badge2": "HYBRID COMPUTING",
-            "focus": "quantum computing algorithms coupled with deep neural networks for accelerated molecular simulation"
-        }
-    ]
-    
-    selected_topic = random.choice(topics_pool)
-    focus_area = selected_topic["focus"]
     run_id = int(time.time()) % 1000
-
+    
     return {
         "short": {
-            "title": selected_topic["short_title"],
-            "description": f"Quick breakdown of latest AI news regarding {focus_area}. #Shorts #AINews #Tech",
+            "title": f"JUST UNVEILED: Autonomous AI Models Take Over Coding! | #Shorts (Ed. #{run_id})",
+            "description": "Quick breakdown of latest AI news regarding autonomous software agents. #Shorts #AINews #Tech",
+            "thumb_prompt": "humanoid robot engineer glowing holographic cybernetics dark neon tech",
             "tags": ["AI News", "Shorts", "Tech", "Artificial Intelligence"],
             "slides": [
-                {"text": f"Breaking news in artificial intelligence as researchers announce a massive breakthrough in {focus_area}.", "prompt": "glowing cybernetic AI brain neon blue 8k", "badge": selected_topic["badge1"]},
-                {"text": f"This new framework enables neural models to analyze complex data streams with unprecedented processing efficiency.", "prompt": "humanoid robot coding at holographic computer terminal", "badge": selected_topic["badge2"]},
-                {"text": "Enterprise technology leaders report that this innovation will streamline global automation across software and research.", "prompt": "quantum computing server room glowing blue data streams", "badge": "INDUSTRY IMPACT"},
-                {"text": f"As deployment expands across cloud networks, computer scientists highlight key security and alignment benchmarks.", "prompt": "cybersecurity shield glowing neon circuit background", "badge": "SAFETY & CONTROL"},
-                {"text": f"Subscribe to FutureTech Pulse right now for daily breaking AI update #{run_id}!", "prompt": "futuristic neon subscribe button circuit background", "badge": "SUBSCRIBE NOW"}
+                {"text": "Breaking news in artificial intelligence as researchers unveil a massive breakthrough in autonomous neural networks.", "prompt": "glowing cybernetic AI brain dark cyan neon 8k", "badge": "BREAKING AI"},
+                {"text": "This new architecture allows AI models to solve complex software engineering problems ten times faster.", "prompt": "humanoid robot working at holographic terminal", "badge": "NEURAL AGENTS"},
+                {"text": "Tech leaders report that this innovation will accelerate enterprise automation across industries.", "prompt": "quantum computing server room glowing blue data streams", "badge": "INDUSTRY IMPACT"},
+                {"text": "As deployment expands globally, computer scientists highlight key security and alignment benchmarks.", "prompt": "cybersecurity shield glowing neon circuit background", "badge": "SAFETY & CONTROL"},
+                {"text": "Subscribe to FutureTech Pulse right now for daily breaking AI news!", "prompt": "futuristic neon subscribe button circuit background", "badge": "SUBSCRIBE NOW"}
             ]
         },
         "long": {
-            "title": selected_topic["long_title"],
-            "description": f"Comprehensive deep dive into recent artificial intelligence breakthroughs involving {focus_area}.",
+            "title": f"INSANE: Next-Gen AI Models Pass Critical Human Benchmarks | FutureTech Pulse (Ed. #{run_id})",
+            "description": "Comprehensive deep dive into recent artificial intelligence breakthroughs.",
+            "thumb_prompt": "quantum supercomputing server matrix glowing neon cybernetic AI brain 8k render",
             "tags": ["AI Breakthrough", "Artificial Intelligence", "Tech News", "FutureTech"],
             "slides": [
-                {"text": f"Welcome to FutureTech Pulse. Today we are conducting an in-depth exploration into new developments in {focus_area}.", "prompt": "futuristic glowing cybernetic AI brain 8k", "badge": "AI DEEP DIVE"},
-                {"text": f"Leading research laboratories have officially demonstrated a novel architecture engineered specifically for {focus_area}.", "prompt": "high tech robotics laboratory dark aesthetic", "badge": selected_topic["badge1"]},
-                {"text": "Unlike standard transformer architectures, this breakthrough significantly decreases latency while boosting reasoning accuracy.", "prompt": "floating holographic code matrix glowing cyan", "badge": "SOFTWARE INNOVATION"},
-                {"text": "In rigorous benchmark evaluations, the system surpassed existing industry standards in complex problem solving and autonomous execution.", "prompt": "supercomputer server room glowing neon circuit trails", "badge": "BENCHMARK PERFORMANCE"},
-                {"text": "Major cloud infrastructure providers are preparing to deploy these advanced models to power next-generation autonomous AI agents.", "prompt": "futuristic digital globe with connected data streams", "badge": "ENTERPRISE INTEGRATION"},
-                {"text": "At the same time, security researchers are introducing novel alignment frameworks to ensure reliable, policy-compliant operations.", "prompt": "cybersecurity shield visual glowing neon lock code", "badge": "SAFETY & ALIGNMENT"},
-                {"text": "Industry experts project that these adaptive neural models will become the primary operating engine for tech infrastructure within the decade.", "prompt": "futuristic city skyline at night floating glowing network", "badge": "FUTURE HORIZON"},
-                {"text": f"Make sure to subscribe to FutureTech Pulse for daily comprehensive coverage of artificial intelligence and emerging tech! (Edition #{run_id})", "prompt": "futuristic neon subscribe banner cyan dark", "badge": "SUBSCRIBE FOR MORE"}
+                {"text": "Welcome to FutureTech Pulse. Today we are conducting an in-depth exploration into milestone AI developments.", "prompt": "futuristic glowing cybernetic AI brain 8k", "badge": "AI DEEP DIVE"},
+                {"text": "Leading research laboratories have officially demonstrated a novel architecture engineered for extreme reasoning.", "prompt": "high tech robotics laboratory dark aesthetic", "badge": "NEURAL ARCHITECTURE"},
+                {"text": "Unlike standard transformer architectures, this breakthrough significantly decreases computational latency.", "prompt": "floating holographic code matrix glowing cyan", "badge": "SOFTWARE INNOVATION"},
+                {"text": "In benchmark evaluations, the system surpassed existing industry standards in autonomous execution.", "prompt": "supercomputer server room glowing neon circuit trails", "badge": "BENCHMARK PERFORMANCE"},
+                {"text": "Major cloud infrastructure providers are preparing to deploy these advanced models to power AI agents.", "prompt": "futuristic digital globe with connected data streams", "badge": "ENTERPRISE INTEGRATION"},
+                {"text": "At the same time, security researchers are introducing novel alignment frameworks to ensure reliable operations.", "prompt": "cybersecurity shield visual glowing neon lock code", "badge": "SAFETY & ALIGNMENT"},
+                {"text": "Industry experts project that these neural models will become the primary operating engine for tech within the decade.", "prompt": "futuristic city skyline at night floating glowing network", "badge": "FUTURE HORIZON"},
+                {"text": "Make sure to subscribe to FutureTech Pulse for daily comprehensive coverage of artificial intelligence!", "prompt": "futuristic neon subscribe banner cyan dark", "badge": "SUBSCRIBE FOR MORE"}
             ]
         }
     }
@@ -300,14 +271,17 @@ def get_background_music(output_file="bg_music.mp3"):
     return None
 
 # ==========================================
-# STEP 3: High-CTR Custom Thumbnail Generator
+# STEP 3: High-CTR Custom Dynamic Thumbnail Generator
 # ==========================================
-def generate_thumbnail(title_text, badge_text, is_short=False, output_file="thumbnail.png"):
+def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, output_file="thumbnail.png"):
     width, height = (1080, 1920) if is_short else (1280, 720)
-    print(f"🎨 Generating High-CTR Thumbnail ({width}x{height}) -> {output_file}...")
+    print(f"🎨 Generating Unique High-CTR Thumbnail ({width}x{height}) -> {output_file}...")
     
-    encoded_prompt = urllib.parse.quote("futuristic AI brain glowing cybernetic neon dark 8k high quality render")
-    img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true"
+    # Use topic-specific prompt with cache-busting seed
+    clean_visual = sanitize_text(visual_prompt) if visual_prompt else "futuristic AI brain cybernetic neon dark 8k"
+    seed = random.randint(10000, 999999)
+    encoded_prompt = urllib.parse.quote(f"{clean_visual}, high contrast dark cyber aesthetic 8k quality render")
+    img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
     
     try:
         res = requests.get(img_url, timeout=12)
@@ -371,11 +345,11 @@ def generate_thumbnail(title_text, badge_text, is_short=False, output_file="thum
 
     base_img = base_img.convert("RGB")
     base_img.save(output_file)
-    print(f"   ✅ Thumbnail created: {output_file}")
+    print(f"   ✅ Unique Thumbnail created: {output_file}")
     return output_file
 
 # ==========================================
-# STEP 4: Per-Slide Synchronized Motion Video Engine
+# STEP 4: Per-Slide Synchronized Motion Video Engine with AI Disclaimer
 # ==========================================
 def render_multislide_video(title_text, slides, is_short=True, output_file="video.mp4"):
     width, height = (1080, 1920) if is_short else (1920, 1080)
@@ -398,9 +372,10 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
         slide_dur = max(slide_audio.duration, 2.0)
         print(f"   Slide {idx+1}/{len(slides)}: Spoken Duration = {slide_dur:.2f}s | Badge = '{slide_badge}'")
 
-        # 2. Fetch unique background image for this slide
+        # 2. Fetch unique background image for this slide with cache-busting seed
+        seed = random.randint(10000, 999999)
         encoded_prompt = urllib.parse.quote(f"{slide_prompt}, dark cyber aesthetic 8k high quality")
-        img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true"
+        img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
         img_path = f"slide_{prefix}_{idx}.png"
 
         try:
@@ -414,14 +389,20 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
             img = PIL.Image.new('RGB', (width, height), color=(15, 23, 42))
             img.save(img_path)
 
-        # 3. Create Lower-Third Caption Overlay for this slide
+        # 3. Create Lower-Third Caption Overlay + AI Content Disclaimer Badge
         overlay_img = PIL.Image.new('RGBA', (width, height), color=(0, 0, 0, 0))
         draw = PIL.ImageDraw.Draw(overlay_img)
 
         if is_short:
+            # Top Badge
             draw.rectangle([(80, 140), (1000, 230)], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=3)
             draw.text((120, 168), slide_badge[:30].upper(), fill=(56, 189, 248))
 
+            # AI Content Disclaimer Badge (Top Right Corner)
+            draw.rectangle([(620, 60), (1000, 120)], fill=(15, 23, 42, 220), outline=(244, 63, 94), width=2)
+            draw.text((640, 80), "[AI-GENERATED MEDIA]", fill=(244, 63, 94))
+
+            # Caption Box
             draw.rectangle([(80, 1280), (1000, 1680)], fill=(15, 23, 42, 220), outline=(56, 189, 248), width=2)
             words = slide_text.split()
             lines, current_line = [], []
@@ -442,9 +423,15 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
             draw.text((180, 1750), "SUBSCRIBE FOR DAILY AI NEWS", fill=(15, 23, 42))
 
         else: # Widescreen 16:9
+            # Top Badge
             draw.rectangle([(100, 60), (750, 130)], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=2)
             draw.text((130, 82), f"FUTURETECH AI | {slide_badge[:25].upper()}", fill=(56, 189, 248))
 
+            # AI Content Disclaimer Badge (Top Right)
+            draw.rectangle([(1400, 60), (1820, 120)], fill=(15, 23, 42, 220), outline=(244, 63, 94), width=2)
+            draw.text((1430, 80), "[AI-GENERATED CONTENT]", fill=(244, 63, 94))
+
+            # Caption Box
             draw.rectangle([(100, 720), (1820, 960)], fill=(15, 23, 42, 220), outline=(56, 189, 248), width=2)
             words = slide_text.split()
             lines, current_line = [], []
@@ -479,7 +466,7 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
             crop_y = (h_scaled - h) // 2
             cropped = resized.crop((crop_x, crop_y, crop_x + w, crop_y + h))
             
-            # Progress bar synced to slide audio timing
+            # Animated progress bar
             frame_draw = PIL.ImageDraw.Draw(cropped)
             bar_y = h - 25 if is_short else h - 15
             frame_draw.rectangle([(0, bar_y), (int(w * progress), bar_y + 15)], fill=(56, 189, 248))
@@ -500,14 +487,14 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
             final_audio = CompositeAudioClip([full_video.audio, bg_music])
             full_video = full_video.set_audio(final_audio)
         except Exception as e:
-            print(f"   ⚠️️ Music overlay note: {e}")
+            print(f"   ⚠️ Music overlay note: {e}")
 
     full_video.write_videofile(output_file, fps=24, codec="libx264", audio_codec="aac")
     print(f"   ✅ Synchronized Motion Video rendered: {output_file}")
     return output_file
 
 # ==========================================
-# STEP 5: YouTube API Uploader with Custom Thumbnail Support
+# STEP 5: YouTube API Uploader with AI Disclosure Metadata
 # ==========================================
 def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None):
     print(f"🚀 Uploading {video_file} to YouTube...")
@@ -526,10 +513,13 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
     
     youtube = build("youtube", "v3", credentials=creds)
     
+    # Standard AI Disclosure in description for YouTube Policy Compliance
+    full_description = f"{sanitize_text(description)[:4500]}\n\n🤖 AI CONTENT DISCLAIMER: This video features AI-synthesized narration, script analysis, and visual graphics generated for automated tech news reporting."
+
     body = {
         "snippet": {
             "title": sanitize_text(title)[:100],
-            "description": sanitize_text(description)[:5000],
+            "description": full_description,
             "tags": [sanitize_text(t) for t in tags],
             "categoryId": "28"
         },
@@ -554,7 +544,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
     # Set Custom Thumbnail via API
     if thumbnail_file and os.path.exists(thumbnail_file):
         try:
-            print(f"🖼️️ Setting custom thumbnail for Video ID {video_id}...")
+            print(f"🖼️ Setting custom thumbnail for Video ID {video_id}...")
             youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_file)).execute()
             print("   ✅ Custom thumbnail published successfully!")
         except Exception as e:
@@ -572,7 +562,13 @@ if __name__ == "__main__":
     short_data = pkg["short"]
     short_slides = short_data.get("slides", [])
     
-    thumb_short = generate_thumbnail(short_data["title"], "BREAKING AI", is_short=True, output_file="thumb_short.png")
+    thumb_short = generate_thumbnail(
+        short_data["title"], 
+        "BREAKING AI", 
+        short_data.get("thumb_prompt", "futuristic AI brain cybernetic neon"), 
+        is_short=True, 
+        output_file="thumb_short.png"
+    )
     
     short_file = render_multislide_video(
         short_data["title"], 
@@ -586,7 +582,13 @@ if __name__ == "__main__":
     long_data = pkg["long"]
     long_slides = long_data.get("slides", [])
     
-    thumb_long = generate_thumbnail(long_data["title"], "AI BREAKTHROUGH", is_short=False, output_file="thumb_long.png")
+    thumb_long = generate_thumbnail(
+        long_data["title"], 
+        "AI BREAKTHROUGH", 
+        long_data.get("thumb_prompt", "supercomputer server matrix glowing cyan AI brain"), 
+        is_short=False, 
+        output_file="thumb_long.png"
+    )
     
     long_file = render_multislide_video(
         long_data["title"], 
