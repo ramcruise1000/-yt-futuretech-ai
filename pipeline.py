@@ -2,6 +2,7 @@ import os
 import json
 import asyncio
 from google import genai
+from google.genai import types
 from PIL import Image, ImageDraw
 import edge_tts
 from moviepy.editor import ImageClip, AudioFileClip
@@ -24,7 +25,7 @@ def generate_script():
     prompt = """You are an expert AI & Tech news content creator for YouTube Shorts.
 Generate an educational, highly engaging 40-second video script about a major recent breakthrough in AI (e.g., OpenAI, Gemini, Robotics, or Autonomous Agents).
 
-Return ONLY a valid JSON object with no markdown formatting:
+Return a JSON object with this exact structure:
 {
   "title": "Did OpenAI Just Change Coding Forever? | AI News #Shorts",
   "description": "Exploring the latest AI breakthrough in software engineering. Subscribe to FutureTech Pulse for daily AI news! #Shorts #AINews #FutureTech",
@@ -33,17 +34,14 @@ Return ONLY a valid JSON object with no markdown formatting:
 }"""
 
     response = client.models.generate_content(
-        model="gemini-1.5-flash",
+        model="gemini-2.0-flash",
         contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+        ),
     )
     
-    raw_text = response.text.strip()
-    if "```" in raw_text:
-        lines = raw_text.splitlines()
-        clean_lines = [line for line in lines if not line.strip().startswith("```")]
-        raw_text = "\n".join(clean_lines)
-            
-    content = json.loads(raw_text.strip())
+    content = json.loads(response.text.strip())
     print(f"   Generated Title: {content['title']}")
     return content
 
