@@ -33,16 +33,15 @@ Return ONLY a valid JSON object with no markdown formatting:
 }"""
 
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-1.5-flash",
         contents=prompt,
     )
     
     raw_text = response.text.strip()
     if "```" in raw_text:
-        parts = raw_text.split("```")
-        raw_text = parts[1] if len(parts) > 1 else parts[0]
-        if raw_text.startswith("json"):
-            raw_text = raw_text[4:]
+        lines = raw_text.splitlines()
+        clean_lines = [line for line in lines if not line.strip().startswith("```")]
+        raw_text = "\n".join(clean_lines)
             
     content = json.loads(raw_text.strip())
     print(f"   Generated Title: {content['title']}")
@@ -71,35 +70,35 @@ def create_video(title_text, script_text, audio_file="voiceover.mp3", output_fil
     draw = ImageDraw.Draw(img)
     
     # Top Header Badge
-    draw.rectangle([50, 180, 1030, 300], fill=(30, 41, 59), outline=(56, 189, 248), width=3)
-    draw.text((120, 220), "FUTURETECH AI PULSE", fill=(56, 189, 248))
+    draw.rectangle([(80, 180), (1000, 280)], fill=(30, 41, 59), outline=(56, 189, 248), width=3)
+    draw.text((120, 215), "FUTURETECH AI PULSE", fill=(56, 189, 248))
     
     # Headline Box
-    draw.rectangle([50, 340, 1030, 600], fill=(15, 23, 42))
-    draw.text((80, 380), title_text[:75], fill=(255, 255, 255))
+    draw.rectangle([(80, 320), (1000, 580)], fill=(15, 23, 42))
+    draw.text((100, 380), title_text[:75], fill=(255, 255, 255))
     
     # Subtitles / Script Card
-    draw.rectangle([50, 640, 1030, 1600], fill=(30, 41, 59))
-    draw.text((80, 680), "TODAY'S AI BREAKTHROUGH:", fill=(244, 63, 94))
+    draw.rectangle([(80, 620), (1000, 1600)], fill=(30, 41, 59))
+    draw.text((120, 660), "TODAY'S AI BREAKTHROUGH:", fill=(244, 63, 94))
     
     # Word Wrap Script
     words = script_text.split()
     lines, current_line = [], []
     for word in words:
         current_line.append(word)
-        if len(" ".join(current_line)) > 32:
+        if len(" ".join(current_line)) > 30:
             lines.append(" ".join(current_line[:-1]))
             current_line = [word]
     if current_line:
         lines.append(" ".join(current_line))
         
-    y_offset = 750
+    y_offset = 740
     for line in lines[:15]:
-        draw.text((80, y_offset), line, fill=(226, 232, 240))
+        draw.text((120, y_offset), line, fill=(226, 232, 240))
         y_offset += 50
         
     # Bottom Call to Action
-    draw.rectangle([50, 1650, 1030, 1780], fill=(56, 189, 248))
+    draw.rectangle([(80, 1650), (1000, 1780)], fill=(56, 189, 248))
     draw.text((180, 1700), "SUBSCRIBE FOR DAILY AI NEWS", fill=(15, 23, 42))
     
     frame_path = "frame.png"
