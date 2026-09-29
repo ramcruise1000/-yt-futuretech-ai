@@ -1,7 +1,10 @@
 import os
 import json
 import time
+import random
 import asyncio
+import requests
+from datetime import datetime
 from google import genai
 from google.genai import types
 from groq import Groq
@@ -14,25 +17,43 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
 # ==========================================
-# STEP 1: AI Script Generation (Dynamic Model Discovery)
+# STEP 1: AI Script Generation (Unique Topic Rotation & Failover)
 # ==========================================
 def generate_script():
-    print("🧠 Step 1: Requesting educational script from AI...")
+    print("🧠 Step 1: Requesting unique educational script from AI...")
     gemini_key = os.environ.get("GEMINI_API_KEY")
     groq_key = os.environ.get("GROQ_API_KEY")
 
-    prompt = """You are an expert AI & Tech news content creator for YouTube Shorts.
-Generate an educational, highly engaging 40-second video script about a major recent breakthrough in AI (e.g., OpenAI, Gemini, Robotics, or Autonomous Agents).
+    # Rotate through distinct sub-topics so every video is 100% unique
+    niches = [
+        "Humanoid Robotics & Boston Dynamics",
+        "AI in Space Exploration & NASA",
+        "Autonomous AI Coding Agents & Developer Tools",
+        "Quantum Computing & AI Synergy",
+        "AI Medical Discoveries & Drug Design",
+        "Brain-Computer Interfaces & Neuralink",
+        "Generative Video Models & Visual World Simulators",
+        "AI Cybersecurity & Autonomous Defense Systems"
+    ]
+    selected_topic = random.choice(niches)
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    prompt = f"""You are an expert AI & Tech news content creator for YouTube Shorts.
+Timestamp Seed: {current_time}
+Selected Sub-Topic: {selected_topic}
+
+Generate a brand new, highly engaging 40-second video script specifically focused on {selected_topic}.
+CRITICAL REQUIREMENT: Do NOT use generic placeholder text or repeat prior topics. Create a completely original headline, description, and script based on {selected_topic}.
 
 Return ONLY a JSON object with this exact structure:
-{
-  "title": "Did OpenAI Just Change Coding Forever? | AI News #Shorts",
-  "description": "Exploring the latest AI breakthrough in software engineering. Subscribe to FutureTech Pulse for daily AI news! #Shorts #AINews #FutureTech",
-  "tags": ["AI News", "OpenAI", "Machine Learning", "Future Tech", "Tech Breakthroughs"],
-  "script": "OpenAI just unveiled a massive update that might change software development forever. Here is what you need to know in 40 seconds..."
-}"""
+{{
+  "title": "Catchy Specific Headline Here | AI News #Shorts",
+  "description": "Engaging 2-sentence breakdown with hashtags #Shorts #AINews #FutureTech #TechBreakthroughs",
+  "tags": ["AI News", "Future Tech", "{selected_topic}", "Technology"],
+  "script": "Full 40-second spoken narration script goes here..."
+}}"""
 
-    # --- PRIMARY PROVIDER: Gemini API with Dynamic Model Discovery ---
+    # --- PRIMARY PROVIDER: Gemini API with Retries & Dynamic Fallback ---
     if gemini_key:
         try:
             client = genai.Client(api_key=gemini_key)
@@ -49,15 +70,15 @@ Return ONLY a JSON object with this exact structure:
                         ),
                     )
                     content = json.loads(response.text.strip())
-                    print(f"   ✅ Gemini success! Title: {content['title']}")
+                    print(f"   ✅ Gemini success! Topic: {selected_topic} | Title: {content['title']}")
                     return content
                 except Exception as e:
                     print(f"   ⚠️ Gemini gemini-3.8-flash attempt {attempt} failed: {e}")
                     if attempt < 3:
                         time.sleep(5)
 
-            # Dynamic Gemini Fallback
-            print("   ⚠️ gemini-3.8-flash unavailable. Discovering other active Gemini models...")
+            # Dynamic Gemini Model Discovery Fallback
+            print("   ⚠️ gemini-3.8-flash unavailable. Discovering active Gemini models...")
             for m in client.models.list():
                 model_id = m.name.replace("models/", "")
                 if "flash" in model_id or "pro" in model_id:
@@ -79,13 +100,12 @@ Return ONLY a JSON object with this exact structure:
         except Exception as e:
             print(f"   ⚠️ Gemini API initialization error: {e}")
 
-    # --- BACKUP PROVIDER: Groq API with Dynamic Model Discovery ---
+    # --- BACKUP PROVIDER: Groq API with Dynamic Active Model Discovery ---
     if groq_key:
         try:
             print("   Attempting Backup Provider: Groq API...")
             groq_client = Groq(api_key=groq_key)
             
-            # Dynamically fetch current active models from Groq endpoint
             models_data = groq_client.models.list().data
             active_groq_models = [m.id for m in models_data if "whisper" not in m.id and "safetensors" not in m.id]
             print(f"   Discovered {len(active_groq_models)} active Groq models.")
