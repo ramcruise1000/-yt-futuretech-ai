@@ -22,10 +22,10 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
 # ==========================================
-# FEATURE 1: Live Breaking News Ingestion
+# STEP 0: Live Breaking News Ingestion
 # ==========================================
 def get_trending_news():
-    print("📰 Step 0: Fetching live breaking AI & tech news via RSS...")
+    print("📰 Step 0: Scrape live AI & tech news via RSS...")
     rss_feeds = [
         "https://techcrunch.com/category/artificial-intelligence/feed/",
         "https://www.mittechnologyreview.com/feed/",
@@ -37,7 +37,7 @@ def get_trending_news():
             feed = feedparser.parse(url)
             for entry in feed.entries[:3]:
                 title = entry.get("title", "")
-                summary = entry.get("summary", "")[:200]
+                summary = entry.get("summary", "")[:250]
                 if title:
                     news_items.append(f"Headline: {title} | Context: {summary}")
         except Exception as e:
@@ -45,54 +45,67 @@ def get_trending_news():
 
     if news_items:
         selected_news = random.choice(news_items)
-        print(f"   ✅ Selected Live News Context: {selected_news[:80]}...")
+        print(f"   ✅ Selected News Context: {selected_news[:90]}...")
         return selected_news
     
     fallback_topics = [
-        "Humanoid Robotics Breakthroughs",
-        "Autonomous AI Coding Agents",
-        "Quantum Computing & AI Fusion",
-        "Generative Video World Models"
+        "Humanoid Robotics & AI Automation Breakthroughs",
+        "Autonomous AI Coding Agents Revolutionizing Software",
+        "Quantum AI Synergy & Supercomputing Breakthroughs"
     ]
     return f"Topic: {random.choice(fallback_topics)}"
 
 # ==========================================
-# FEATURE 2: AI Script Generation (Gemini Retries + Groq Fix)
+# STEP 1: Dual AI Script Generation (Short + 1-2 Min Long)
 # ==========================================
-def generate_script():
-    print("🧠 Step 1: Requesting educational script & visual prompts from AI...")
+def generate_dual_scripts():
+    print("🧠 Step 1: Requesting Dual Scripts (Short + 2-Min Video) from AI...")
     gemini_key = os.environ.get("GEMINI_API_KEY")
     groq_key = os.environ.get("GROQ_API_KEY")
     news_context = get_trending_news()
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    prompt = f"""You are an expert AI & Tech news content creator for YouTube Shorts.
+    prompt = f"""You are an expert AI & Tech news content creator for YouTube.
 Timestamp Seed: {current_time}
 Live News Anchor Context: {news_context}
 
-Generate an educational, highly engaging 40-second video script based on this live context.
-In addition, provide 3 short visual prompts describing key scenes for AI background generation.
+Generate TWO distinct content packages in JSON format:
+1. "short": A punchy 40-second vertical video script (#Shorts).
+2. "long": An expanded 90-120 second in-depth horizontal video script.
 
 Return ONLY a JSON object with this exact structure:
 {{
-  "title": "Catchy Specific Headline Here | AI News #Shorts",
-  "description": "Engaging 2-sentence breakdown with hashtags #Shorts #AINews #FutureTech",
-  "tags": ["AI News", "Future Tech", "Tech Breakthroughs"],
-  "image_prompts": [
-    "futuristic glowing AI brain network, 3D render dark cyber aesthetic",
-    "autonomous robot coding on holographic display, futuristic dark background",
-    "high tech futuristic city with glowing neon data streams"
-  ],
-  "script": "Full 40-second spoken narration script goes here..."
+  "short": {{
+    "title": "Short Catchy Headline | AI News #Shorts",
+    "description": "Quick breakdown of latest AI news. #Shorts #AINews #Tech",
+    "tags": ["AI News", "Shorts", "Tech"],
+    "prompts": [
+      "futuristic glowing cybernetic AI brain, dark cyber neon lighting",
+      "humanoid robot working at high tech holographic workstation"
+    ],
+    "script": "Spoken script for 40-second Short..."
+  }},
+  "long": {{
+    "title": "In-Depth: Major AI Breakthrough Explored | FutureTech Pulse",
+    "description": "Comprehensive 2-minute deep dive into recent AI breakthroughs. Subscribe for daily tech analysis!",
+    "tags": ["AI Breakthrough", "Artificial Intelligence", "Tech News", "FutureTech"],
+    "prompts": [
+      "futuristic glowing cybernetic AI brain, dark cyber neon lighting",
+      "humanoid robot working at high tech holographic workstation",
+      "advanced quantum computing server room glowing with data streams",
+      "futuristic city skyline at night with floating data networks"
+    ],
+    "script": "Full in-depth 90-120 second spoken narration script providing background, implications, and future outlook..."
+  }}
 }}"""
 
-    # --- PRIMARY PROVIDER: Gemini API with Retries + Discovery ---
+    # Primary Provider: Gemini API
     if gemini_key:
         try:
             client = genai.Client(api_key=gemini_key)
             for attempt in range(1, 4):
                 try:
-                    print(f"   Attempting Primary Provider: Gemini API (gemini-3.8-flash, Try {attempt}/3)...")
+                    print(f"   Attempting Gemini API (gemini-3.8-flash, Try {attempt}/3)...")
                     response = client.models.generate_content(
                         model="gemini-3.8-flash",
                         contents=prompt,
@@ -101,37 +114,15 @@ Return ONLY a JSON object with this exact structure:
                         ),
                     )
                     content = json.loads(response.text.strip())
-                    print(f"   ✅ Gemini success! Title: {content['title']}")
+                    print("   ✅ Gemini success for Dual Scripts!")
                     return content
                 except Exception as e:
-                    print(f"   ⚠️ Gemini gemini-3.8-flash attempt {attempt} failed: {e}")
-                    if attempt < 3:
-                        print("   Pausing 10 seconds before retrying Gemini...")
-                        time.sleep(10)
-
-            # Dynamic Gemini Model Discovery Fallback
-            print("   ⚠️ gemini-3.8-flash unavailable. Discovering active Gemini models...")
-            for m in client.models.list():
-                model_id = m.name.replace("models/", "")
-                if "flash" in model_id or "pro" in model_id:
-                    try:
-                        print(f"   Trying Gemini model: '{model_id}'...")
-                        response = client.models.generate_content(
-                            model=model_id,
-                            contents=prompt,
-                            config=types.GenerateContentConfig(
-                                response_mime_type="application/json",
-                            ),
-                        )
-                        content = json.loads(response.text.strip())
-                        print(f"   ✅ Gemini ('{model_id}') success! Title: {content['title']}")
-                        return content
-                    except Exception as err:
-                        print(f"   ⚠️ Gemini model '{model_id}' failed: {err}")
+                    print(f"   ⚠️ Gemini attempt {attempt} failed: {e}")
+                    time.sleep(5)
         except Exception as e:
-            print(f"   ⚠️ Gemini API initialization error: {e}")
+            print(f"   ⚠️ Gemini client error: {e}")
 
-    # --- BACKUP PROVIDER: Groq API (Fixed Indexing) ---
+    # Backup Provider: Groq API
     if groq_key:
         try:
             print("   Attempting Backup Provider: Groq API...")
@@ -141,7 +132,6 @@ Return ONLY a JSON object with this exact structure:
 
             for model in active_models:
                 try:
-                    print(f"   Trying Groq model: '{model}'...")
                     completion = groq_client.chat.completions.create(
                         model=model,
                         messages=[{"role": "user", "content": prompt}],
@@ -149,113 +139,110 @@ Return ONLY a JSON object with this exact structure:
                     raw_text = completion.choices[0].message.content.strip()
                     if "```json" in raw_text:
                         raw_text = raw_text.split("```json")[1].split("```")[0].strip()
-                    elif "```" in raw_text:
-                        raw_text = raw_text.split("```")[1].split("```")[0].strip()
                     content = json.loads(raw_text)
-                    print(f"   ✅ Groq ('{model}') success! Title: {content['title']}")
+                    print(f"   ✅ Groq ({model}) success for Dual Scripts!")
                     return content
                 except Exception as err:
                     print(f"   ⚠️ Groq model '{model}' failed: {err}")
         except Exception as e:
             print(f"   ⚠️ Groq API error: {e}")
-    else:
-        print("   ⚠️ GROQ_API_KEY environment variable is not set or empty in GitHub.")
 
-    raise RuntimeError("❌ Both Gemini and Groq AI attempts failed. Please verify API keys.")
+    raise RuntimeError("❌ Both Gemini and Groq AI attempts failed.")
 
 # ==========================================
-# FEATURE 3: Neural Voiceover & Royalty-Free Music
+# STEP 2: Speech Synthesis & Audio Mixer
 # ==========================================
-async def create_voiceover(text, output_file="voiceover.mp3"):
-    print("🎙️ Step 2: Synthesizing natural neural speech via edge-tts...")
+async def create_voiceover(text, output_file):
+    print(f"🎙️ Synthesizing speech -> {output_file}...")
     voice = "en-US-ChristopherNeural"
     communicate = edge_tts.Communicate(text, voice)
     await communicate.save(output_file)
-    print("   Voiceover generated successfully.")
+    print("   Speech synthesized successfully.")
 
 def get_background_music(output_file="bg_music.mp3"):
     if os.path.exists(output_file):
         return output_file
-    print("🎵 Fetching royalty-free ambient background music...")
+    print("🎵 Fetching background music track...")
     url = "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=cyberpunk-tech-110391.mp3"
     try:
         res = requests.get(url, timeout=10)
         if res.status_code == 200:
             with open(output_file, "wb") as f:
                 f.write(res.content)
-            print("   Background music cached.")
             return output_file
     except Exception as e:
-        print(f"   ⚠️ Could not fetch music track: {e}")
+        print(f"   ⚠️ Music download error: {e}")
     return None
 
 # ==========================================
-# FEATURE 4: Dynamic 9:16 Visual Backgrounds
+# STEP 3: Animated Background Engine (Pan & Zoom Animation)
 # ==========================================
-def download_ai_images(prompts, total_duration):
-    print("🖼️ Generating 9:16 AI background image slideshow via Pollinations.ai...")
+def download_animated_backgrounds(prompts, total_duration, width=1080, height=1920):
+    print(f"🖼️ Generating Animated Backgrounds ({width}x{height}) with Ken Burns Motion...")
     image_paths = []
-    per_image_duration = total_duration / len(prompts)
-    
+    per_image_dur = total_duration / len(prompts)
+
     for idx, raw_prompt in enumerate(prompts):
-        encoded_prompt = urllib.parse.quote(f"{raw_prompt}, dark futuristic tech aesthetic, 8k resolution")
-        url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1920&nologo=true"
-        file_path = f"ai_bg_{idx}.png"
+        encoded_prompt = urllib.parse.quote(f"{raw_prompt}, dark cyber aesthetic, futuristic tech 8k")
+        url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true"
+        file_path = f"bg_{width}x{height}_{idx}.png"
         try:
             res = requests.get(url, timeout=15)
             if res.status_code == 200:
                 with open(file_path, "wb") as f:
                     f.write(res.content)
-                image_paths.append((file_path, per_image_duration))
-                print(f"   ✅ AI Image {idx+1}/{len(prompts)} downloaded.")
+                image_paths.append((file_path, per_image_dur))
         except Exception as e:
-            print(f"   ⚠️ AI Image download error: {e}")
+            print(f"   ⚠️ AI Image error: {e}")
 
     if not image_paths:
-        img = Image.new('RGB', (1080, 1920), color=(15, 23, 42))
-        img.save("fallback_bg.png")
-        image_paths.append(("fallback_bg.png", total_duration))
+        file_path = f"fallback_{width}x{height}.png"
+        img = Image.new('RGB', (width, height), color=(15, 23, 42))
+        img.save(file_path)
+        image_paths.append((file_path, total_duration))
 
     clips = []
     for path, dur in image_paths:
-        clip = ImageClip(path).set_duration(dur)
-        clips.append(clip)
+        # Create image clip and apply continuous zoom-in animation
+        img_clip = ImageClip(path).set_duration(dur)
+        # Smooth zoom animation from 1.0x to 1.12x scale over time
+        animated_clip = img_clip.resize(lambda t: 1.0 + 0.02 * t)
+        clips.append(animated_clip)
+
     return concatenate_videoclips(clips, method="compose")
 
 # ==========================================
-# FEATURE 5: Video Assembly with Subtitles & Overlays
+# STEP 4: Video Builders (Short 9:16 & Long 16:9)
 # ==========================================
-def create_video(title_text, script_text, image_prompts, audio_file="voiceover.mp3", output_file="final_video.mp4"):
-    print("🎬 Step 3: Assembling multi-layered 9:16 vertical video & subtitles...")
+def create_video_short(title_text, script_text, prompts, audio_file, output_file="short_video.mp4"):
+    print("🎬 Rendering 9:16 Vertical Short with Motion Animation...")
     voice_audio = AudioFileClip(audio_file)
     duration = voice_audio.duration
     
     bg_music_file = get_background_music()
     if bg_music_file:
         try:
-            bg_music = AudioFileClip(bg_music_file).volumex(0.10).set_duration(duration)
+            bg_music = AudioFileClip(bg_music_file).volumex(0.08).set_duration(duration)
             final_audio = CompositeAudioClip([voice_audio, bg_music])
         except Exception:
             final_audio = voice_audio
     else:
         final_audio = voice_audio
 
-    bg_video_clip = download_ai_images(image_prompts, duration)
+    bg_video = download_animated_backgrounds(prompts, duration, width=1080, height=1920)
 
+    # Render Subtitle Card Overlay
     overlay_img = Image.new('RGBA', (1080, 1920), color=(0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay_img)
     
-    # Top Header Badge
     draw.rectangle([(80, 140), (1000, 240)], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=3)
     draw.text((120, 175), "FUTURETECH AI PULSE", fill=(56, 189, 248))
     
-    # Headline Box
     draw.rectangle([(80, 280), (1000, 540)], fill=(15, 23, 42, 230))
-    draw.text((100, 340), title_text[:75], fill=(255, 255, 255))
+    draw.text((100, 340), title_text[:70], fill=(255, 255, 255))
     
-    # Subtitles Card
     draw.rectangle([(80, 580), (1000, 1600)], fill=(15, 23, 42, 220))
-    draw.text((120, 620), "BREAKING NEWS SUMMARY:", fill=(244, 63, 94))
+    draw.text((120, 620), "TODAY'S AI BREAKTHROUGH:", fill=(244, 63, 94))
     
     words = script_text.split()
     lines, current_line = [], []
@@ -272,26 +259,84 @@ def create_video(title_text, script_text, image_prompts, audio_file="voiceover.m
         draw.text((120, y_offset), line, fill=(226, 232, 240))
         y_offset += 52
         
-    # Call to Action
     draw.rectangle([(80, 1650), (1000, 1780)], fill=(56, 189, 248, 240))
     draw.text((180, 1700), "SUBSCRIBE FOR DAILY AI NEWS", fill=(15, 23, 42))
     
-    overlay_path = "overlay.png"
+    overlay_path = "overlay_short.png"
     overlay_img.save(overlay_path)
-    
     overlay_clip = ImageClip(overlay_path).set_duration(duration)
-    
-    final_video = CompositeVideoClip([bg_video_clip, overlay_clip])
+
+    final_video = CompositeVideoClip([bg_video, overlay_clip])
     final_video = final_video.set_audio(final_audio)
     final_video.write_videofile(output_file, fps=24, codec="libx264", audio_codec="aac")
-    print(f"   Video rendering complete: {output_file}")
+    print(f"   ✅ Short rendered: {output_file}")
+    return output_file
+
+def create_video_long(title_text, script_text, prompts, audio_file, output_file="long_video.mp4"):
+    print("🎬 Rendering 16:9 Widescreen 1-2 Min Video with Motion Animation...")
+    voice_audio = AudioFileClip(audio_file)
+    duration = voice_audio.duration
+    
+    bg_music_file = get_background_music()
+    if bg_music_file:
+        try:
+            bg_music = AudioFileClip(bg_music_file).volumex(0.08).set_duration(duration)
+            final_audio = CompositeAudioClip([voice_audio, bg_music])
+        except Exception:
+            final_audio = voice_audio
+    else:
+        final_audio = voice_audio
+
+    # Widescreen 1920x1080 background
+    bg_video = download_animated_backgrounds(prompts, duration, width=1920, height=1080)
+
+    # Widescreen Overlay
+    overlay_img = Image.new('RGBA', (1920, 1080), color=(0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay_img)
+    
+    # Top Left Channel Badge
+    draw.rectangle([(100, 60), (700, 130)], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=2)
+    draw.text((130, 82), "FUTURETECH AI PULSE | DEEP DIVE", fill=(56, 189, 248))
+    
+    # Center-Bottom Transcript Card
+    draw.rectangle([(100, 160), (1820, 920)], fill=(15, 23, 42, 215))
+    draw.text((140, 200), title_text[:110], fill=(255, 255, 255))
+    draw.rectangle([(140, 270), (1780, 272)], fill=(56, 189, 248))
+    
+    words = script_text.split()
+    lines, current_line = [], []
+    for word in words:
+        current_line.append(word)
+        if len(" ".join(current_line)) > 60:
+            lines.append(" ".join(current_line[:-1]))
+            current_line = [word]
+    if current_line:
+        lines.append(" ".join(current_line))
+        
+    y_offset = 300
+    for line in lines[:11]:
+        draw.text((140, y_offset), line, fill=(226, 232, 240))
+        y_offset += 50
+        
+    # Subscribe Banner
+    draw.rectangle([(100, 960), (1820, 1030)], fill=(56, 189, 248, 230))
+    draw.text((650, 980), "SUBSCRIBE FOR DAILY IN-DEPTH AI COVERAGE", fill=(15, 23, 42))
+    
+    overlay_path = "overlay_long.png"
+    overlay_img.save(overlay_path)
+    overlay_clip = ImageClip(overlay_path).set_duration(duration)
+
+    final_video = CompositeVideoClip([bg_video, overlay_clip])
+    final_video = final_video.set_audio(final_audio)
+    final_video.write_videofile(output_file, fps=24, codec="libx264", audio_codec="aac")
+    print(f"   ✅ Long Video rendered: {output_file}")
     return output_file
 
 # ==========================================
-# STEP 4: YouTube API Upload
+# STEP 5: YouTube API Uploader
 # ==========================================
 def upload_to_youtube(video_file, title, description, tags):
-    print("🚀 Step 4: Uploading video to YouTube via Data API v3...")
+    print(f"🚀 Uploading {video_file} to YouTube...")
     client_id = os.environ.get("YOUTUBE_CLIENT_ID")
     client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
     refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN")
@@ -334,20 +379,36 @@ def upload_to_youtube(video_file, title, description, tags):
             print(f"   Upload Progress: {int(status.progress() * 100)}%")
             
     video_id = response.get("id")
-    print(f"🎉 SUCCESS! Video published live to YouTube: https://youtu.be/{video_id}")
+    print(f"🎉 SUCCESS! Published live to YouTube: https://youtu.be/{video_id}")
     return video_id
 
 # ==========================================
 # MAIN EXECUTION ROUTINE
 # ==========================================
 if __name__ == "__main__":
-    content = generate_script()
-    asyncio.run(create_voiceover(content["script"], "voiceover.mp3"))
-    video_file = create_video(
-        content["title"], 
-        content["script"], 
-        content.get("image_prompts", ["futuristic AI network"]),
-        "voiceover.mp3", 
-        "final_video.mp4"
+    # 1. Generate Dual Scripts
+    pkg = generate_dual_scripts()
+    
+    # 2. Render & Upload Short Video (9:16, ~40s)
+    short_data = pkg["short"]
+    asyncio.run(create_voiceover(short_data["script"], "voice_short.mp3"))
+    short_file = create_video_short(
+        short_data["title"], 
+        short_data["script"], 
+        short_data.get("prompts", ["cyber AI brain"]), 
+        "voice_short.mp3", 
+        "short_video.mp4"
     )
-    upload_to_youtube(video_file, content["title"], content["description"], content["tags"])
+    upload_to_youtube(short_file, short_data["title"], short_data["description"], short_data["tags"])
+    
+    # 3. Render & Upload Long Video (16:9, 1-2 mins)
+    long_data = pkg["long"]
+    asyncio.run(create_voiceover(long_data["script"], "voice_long.mp3"))
+    long_file = create_video_long(
+        long_data["title"], 
+        long_data["script"], 
+        long_data.get("prompts", ["futuristic quantum computer"]), 
+        "voice_long.mp3", 
+        "long_video.mp4"
+    )
+    upload_to_youtube(long_file, long_data["title"], long_data["description"], long_data["tags"])
