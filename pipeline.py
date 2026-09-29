@@ -14,7 +14,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
 # ==========================================
-# STEP 1: AI Script Generation (Gemini + Groq SDK Fallback)
+# STEP 1: AI Script Generation (Gemini + Groq Fallback Loop)
 # ==========================================
 def generate_script():
     print("🧠 Step 1: Requesting educational script from AI...")
@@ -55,24 +55,32 @@ Return ONLY a JSON object with this exact structure:
                         print("   Pausing 10 seconds before retrying Gemini...")
                         time.sleep(10)
         except Exception as e:
-            print(f"   ⚠️ Gemini client error: {e}")
+            print(f"   ⚠️ Gemini client initialization error: {e}")
 
-    # --- BACKUP PROVIDER: Official Groq Python SDK ---
+    # --- BACKUP PROVIDER: Groq API with Model Candidates ---
     if groq_key:
-        try:
-            print("   Attempting Backup Provider: Groq API (llama-3.3-70b-versatile)...")
-            groq_client = Groq(api_key=groq_key)
-            completion = groq_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"},
-            )
-            raw_json = completion.choices[0].message.content
-            content = json.loads(raw_json.strip())
-            print(f"   ✅ Groq Llama-3 success! Title: {content['title']}")
-            return content
-        except Exception as e:
-            print(f"   ⚠️ Groq API failed: {e}")
+        groq_models = [
+            "llama-3.1-70b-versatile",
+            "llama3-70b-8192",
+            "mixtral-8x7b-32768",
+            "gemma2-9b-it",
+            "llama-3.3-70b-versatile"
+        ]
+        groq_client = Groq(api_key=groq_key)
+        for model in groq_models:
+            try:
+                print(f"   Attempting Backup Provider: Groq API ({model})...")
+                completion = groq_client.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"},
+                )
+                raw_json = completion.choices.message.content
+                content = json.loads(raw_json.strip())
+                print(f"   ✅ Groq ({model}) success! Title: {content['title']}")
+                return content
+            except Exception as e:
+                print(f"   ⚠️ Groq model '{model}' failed: {e}")
     else:
         print("   ⚠️ GROQ_API_KEY environment variable is not set or empty in GitHub.")
 
