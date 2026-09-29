@@ -6,6 +6,11 @@ import asyncio
 import requests
 import feedparser
 import urllib.parse
+import PIL.Image
+# Fix MoviePy compatibility with modern Pillow versions
+if not hasattr(PIL.Image, 'ANTIALIAS'):
+    PIL.Image.ANTIALIAS = getattr(PIL.Image, 'LANCZOS', getattr(PIL.Image, 'Resampling', PIL.Image).LANCZOS)
+
 from datetime import datetime
 from google import genai
 from google.genai import types
