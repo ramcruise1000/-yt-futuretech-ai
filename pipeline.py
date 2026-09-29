@@ -8,11 +8,13 @@ import warnings
 import requests
 import feedparser
 import urllib.parse
+import numpy as np
 from datetime import datetime
 
 # Explicit PIL imports & deprecation warning fix
 import PIL.Image
 import PIL.ImageDraw
+import PIL.ImageFont
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 if not hasattr(PIL.Image, 'ANTIALIAS'):
     PIL.Image.ANTIALIAS = getattr(PIL.Image, 'LANCZOS', getattr(PIL.Image, 'Resampling', PIL.Image).LANCZOS)
@@ -22,7 +24,7 @@ from google.genai import types
 from groq import Groq
 import edge_tts
 from moviepy.editor import (
-    ImageClip, AudioFileClip, CompositeVideoClip, 
+    VideoClip, ImageClip, AudioFileClip, CompositeVideoClip, 
     CompositeAudioClip, concatenate_videoclips
 )
 from googleapiclient.discovery import build
@@ -57,7 +59,6 @@ def get_trending_news():
                 summary = entry.get("summary", "")[:300]
                 full_text = f"{title} {summary}".lower()
                 
-                # Enforce strict AI & Tech relevance filter
                 if any(kw in full_text for kw in ai_keywords):
                     clean_title = sanitize_text(title.replace('"', "'").replace("\n", " "))
                     clean_summary = sanitize_text(summary.replace('"', "'").replace("\n", " "))
@@ -80,7 +81,7 @@ def get_trending_news():
     return selected_fallback
 
 # ==========================================
-# STEP 1: Multi-Provider AI Engine (Strict Length & AI Topic Mandate)
+# STEP 1: Multi-Provider AI Engine (Strict AI Topic & Length)
 # ==========================================
 def generate_dual_scripts():
     print("🧠 Step 1: Generating Animated Multi-Slide AI & Tech News Package...")
@@ -96,9 +97,9 @@ Context: {news_context}
 
 CRITICAL MANDATE:
 - Topic MUST be strictly about Artificial Intelligence, LLMs, Robotics, Microchips, or Emerging Tech.
-- You MUST generate TWO distinct content packages with DIFFERENT lengths:
-  1. "short": 4-5 detailed slides, total 90-120 words (~40-50 seconds spoken audio).
-  2. "long": 8-10 detailed in-depth slides, total 280-350 words (~90-120 seconds spoken audio).
+- Generate TWO distinct content packages:
+  1. "short": 5 slides, total 90-120 words (~40-50 seconds spoken audio).
+  2. "long": 8-10 slides, total 280-350 words (~90-120 seconds spoken audio).
 
 Return ONLY a valid JSON object with this exact structure:
 {{
@@ -126,7 +127,7 @@ Return ONLY a valid JSON object with this exact structure:
       {{"text": "Key industry partners are already integrating this system into cloud infrastructure to power next generation AI agents.", "prompt": "futuristic digital globe with connected data streams", "badge": "ENTERPRISE INTEGRATION"}},
       {{"text": "However, security researchers emphasize the crucial need for robust alignment safeguards as autonomous capabilities expand.", "prompt": "cybersecurity shield visual glowing neon lock code", "badge": "SAFETY & ALIGNMENT"}},
       {{"text": "Looking ahead, this breakthrough sets the foundation for highly adaptable AI systems capable of continuous real time learning.", "prompt": "futuristic tech laboratory with glowing hologram displays", "badge": "FUTURE HORIZON"}},
-      {{"text": "Make sure to subscribe to FutureTech Pulse for daily, in-depth coverage of artificial intelligence and emerging technology!", "prompt": "futuristic neon subscribe banner cyan dark", "badge": "SUBSCRIBE FOR MORE"}}
+      {{"text": "Make sure to subscribe to FutureTech Pulse for daily, comprehensive coverage of artificial intelligence and emerging technology!", "prompt": "futuristic neon subscribe banner cyan dark", "badge": "SUBSCRIBE FOR MORE"}}
     ]
   }}
 }}"""
@@ -170,7 +171,7 @@ Return ONLY a valid JSON object with this exact structure:
                         response_format={"type": "json_object"},
                         max_tokens=1500
                     )
-                    raw_text = completion.choices[0].message.content.strip()
+                    raw_text = completion.choices.message.content.strip()
                     content = json.loads(raw_text)
                     if isinstance(content, dict) and "short" in content and "long" in content:
                         print(f"   ✅ Groq ({model}) success!")
@@ -180,40 +181,26 @@ Return ONLY a valid JSON object with this exact structure:
         except Exception as e:
             print(f"   ⚠️ Groq API error: {e}")
 
-    # --- PROVIDER 3: OpenRouter API (Free Tier Models) ---
+    # --- PROVIDER 3: OpenRouter API ---
     if openrouter_key:
         try:
             print("   [Provider 3] Switching to OpenRouter Free API...")
-            headers = {
-                "Authorization": f"Bearer {openrouter_key}",
-                "Content-Type": "application/json"
-            }
-            openrouter_models = [
-                "google/gemma-2-9b-it:free",
-                "meta-llama/llama-3.2-11b-vision-instruct:free",
-                "qwen/qwen-2.5-coder-32b-instruct:free"
-            ]
+            headers = {"Authorization": f"Bearer {openrouter_key}", "Content-Type": "application/json"}
+            openrouter_models = ["google/gemma-2-9b-it:free", "meta-llama/llama-3.2-11b-vision-instruct:free"]
             for model in openrouter_models:
                 try:
-                    print(f"   Trying OpenRouter model: '{model}'...")
-                    payload = {
-                        "model": model,
-                        "messages": [{"role": "user", "content": prompt}],
-                        "response_format": {"type": "json_object"}
-                    }
-                    res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=20)
+                    res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": model, "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_object"}}, timeout=20)
                     if res.status_code == 200:
-                        raw_text = res.json()["choices"][0]["message"]["content"]
-                        content = json.loads(raw_text)
+                        content = json.loads(res.json()["choices"]["message"]["content"])
                         if isinstance(content, dict) and "short" in content and "long" in content:
                             print(f"   ✅ OpenRouter ({model}) success!")
                             return content
-                except Exception as e:
-                    print(f"   ⚠️ OpenRouter model '{model}' skipped: {e}")
+                except Exception:
+                    pass
         except Exception as e:
             print(f"   ⚠️ OpenRouter API error: {e}")
 
-    # --- PROVIDER 4: Fail-Safe Built-in AI Template Engine ---
+    # --- PROVIDER 4: Fail-Safe AI Template Engine ---
     print("   ⚠️ All remote AI providers busy. Using Fail-Safe AI Template Engine...")
     return {
         "short": {
@@ -271,7 +258,80 @@ def get_background_music(output_file="bg_music.mp3"):
     return None
 
 # ==========================================
-# STEP 3: Multi-Slide Animated Video Engine
+# STEP 3: High-CTR Custom Thumbnail Generators
+# ==========================================
+def generate_thumbnail(title_text, badge_text, is_short=False, output_file="thumbnail.png"):
+    width, height = (1080, 1920) if is_short else (1280, 720)
+    print(f"🎨 Generating High-CTR Thumbnail ({width}x{height}) -> {output_file}...")
+    
+    # 1. Fetch AI visual backdrop
+    encoded_prompt = urllib.parse.quote("futuristic AI brain glowing cybernetic neon dark 8k high quality render")
+    img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true"
+    
+    try:
+        res = requests.get(img_url, timeout=12)
+        if res.status_code == 200:
+            with open("thumb_bg.png", "wb") as f:
+                f.write(res.content)
+            base_img = PIL.Image.open("thumb_bg.png").convert("RGBA")
+        else:
+            base_img = PIL.Image.new("RGBA", (width, height), (15, 23, 42, 255))
+    except Exception:
+        base_img = PIL.Image.new("RGBA", (width, height), (15, 23, 42, 255))
+
+    draw = PIL.ImageDraw.Draw(base_img)
+    
+    # Outer Neon Border
+    draw.rectangle([(20, 20), (width-20, height-20)], outline=(56, 189, 248), width=6)
+    
+    if is_short:
+        # Vertical 9:16 Thumbnail Overlay
+        draw.rectangle([(60, 160), (1020, 280)], fill=(244, 63, 94, 240))
+        draw.text((100, 200), sanitize_text(badge_text).upper(), fill=(255, 255, 255))
+        
+        draw.rectangle([(60, 1200), (1020, 1680)], fill=(15, 23, 42, 235), outline=(250, 204, 21), width=4)
+        words = sanitize_text(title_text).split()
+        lines, current_line = [], []
+        for word in words:
+            current_line.append(word)
+            if len(" ".join(current_line)) > 20:
+                lines.append(" ".join(current_line[:-1]))
+                current_line = [word]
+        if current_line:
+            lines.append(" ".join(current_line))
+            
+        y_off = 1240
+        for line in lines[:5]:
+            draw.text((90, y_off), line, fill=(250, 204, 21)) # High-CTR Yellow Text
+            y_off += 65
+    else:
+        # Widescreen 16:9 Thumbnail Overlay
+        draw.rectangle([(80, 80), (600, 160)], fill=(244, 63, 94, 240))
+        draw.text((110, 105), f"🔥 {sanitize_text(badge_text).upper()}", fill=(255, 255, 255))
+        
+        draw.rectangle([(80, 220), (1200, 580)], fill=(15, 23, 42, 230), outline=(56, 189, 248), width=4)
+        words = sanitize_text(title_text).split()
+        lines, current_line = [], []
+        for word in words:
+            current_line.append(word)
+            if len(" ".join(current_line)) > 32:
+                lines.append(" ".join(current_line[:-1]))
+                current_line = [word]
+        if current_line:
+            lines.append(" ".join(current_line))
+            
+        y_off = 250
+        for line in lines[:4]:
+            draw.text((110, y_off), line, fill=(250, 204, 21)) # High-CTR Yellow Text
+            y_off += 70
+
+    base_img = base_img.convert("RGB")
+    base_img.save(output_file)
+    print(f"   ✅ Thumbnail created: {output_file}")
+    return output_file
+
+# ==========================================
+# STEP 4: True Frame-by-Frame Motion Zoom Video Engine
 # ==========================================
 def render_multislide_video(title_text, slides, audio_file, is_short=True, output_file="video.mp4"):
     width, height = (1080, 1920) if is_short else (1920, 1080)
@@ -299,7 +359,7 @@ def render_multislide_video(title_text, slides, audio_file, is_short=True, outpu
         slide_prompt = sanitize_text(slide.get("prompt", "futuristic AI technology dark"))
         slide_badge = sanitize_text(slide.get("badge", "FUTURETECH AI"))
 
-        # 1. Download unique image for this specific slide
+        # 1. Download unique image for this slide
         encoded_prompt = urllib.parse.quote(f"{slide_prompt}, dark cyber aesthetic 8k")
         img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true"
         file_path = f"slide_{'short' if is_short else 'long'}_{idx}.png"
@@ -315,22 +375,15 @@ def render_multislide_video(title_text, slides, audio_file, is_short=True, outpu
             img = PIL.Image.new('RGB', (width, height), color=(15, 23, 42))
             img.save(file_path)
 
-        # 2. Animated Motion Background (Ken Burns Zoom)
-        img_clip = ImageClip(file_path).set_duration(slide_dur)
-        animated_bg = img_clip.resize(lambda t: 1.0 + 0.03 * t)
-
-        # 3. Create sleek, dynamic lower-third caption card for this slide ONLY
+        # 2. Render Overlay Card
         overlay_img = PIL.Image.new('RGBA', (width, height), color=(0, 0, 0, 0))
         draw = PIL.ImageDraw.Draw(overlay_img)
 
         if is_short:
-            # Top Badge
             draw.rectangle([(80, 140), (1000, 230)], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=3)
             draw.text((120, 168), slide_badge[:30], fill=(56, 189, 248))
 
-            # Sleek Lower-Third Caption Card
             draw.rectangle([(80, 1280), (1000, 1680)], fill=(15, 23, 42, 220), outline=(56, 189, 248), width=2)
-            
             words = slide_text.split()
             lines, current_line = [], []
             for word in words:
@@ -346,18 +399,14 @@ def render_multislide_video(title_text, slides, audio_file, is_short=True, outpu
                 draw.text((110, y_offset), line, fill=(255, 255, 255))
                 y_offset += 52
 
-            # Subscribe CTA
             draw.rectangle([(80, 1720), (1000, 1820)], fill=(56, 189, 248, 240))
             draw.text((180, 1750), "SUBSCRIBE FOR DAILY AI NEWS", fill=(15, 23, 42))
 
         else: # Widescreen 16:9
-            # Top Left Badge
             draw.rectangle([(100, 60), (700, 130)], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=2)
             draw.text((130, 82), f"FUTURETECH AI | {slide_badge[:25]}", fill=(56, 189, 248))
 
-            # Bottom Caption Bar
             draw.rectangle([(100, 720), (1820, 960)], fill=(15, 23, 42, 220), outline=(56, 189, 248), width=2)
-
             words = slide_text.split()
             lines, current_line = [], []
             for word in words:
@@ -373,27 +422,44 @@ def render_multislide_video(title_text, slides, audio_file, is_short=True, outpu
                 draw.text((140, y_offset), line, fill=(255, 255, 255))
                 y_offset += 48
 
-            # Bottom CTA
             draw.rectangle([(100, 980), (1820, 1040)], fill=(56, 189, 248, 230))
             draw.text((650, 995), "SUBSCRIBE FOR DAILY IN-DEPTH AI COVERAGE", fill=(15, 23, 42))
 
-        overlay_path = f"overlay_{'short' if is_short else 'long'}_{idx}.png"
-        overlay_img.save(overlay_path)
-        overlay_clip = ImageClip(overlay_path).set_duration(slide_dur)
+        # 3. Combine Base Background & Overlay Card
+        base_pil = PIL.Image.open(file_path).convert("RGBA").resize((width, height))
+        composed_pil = PIL.Image.alpha_composite(base_pil, overlay_img).convert("RGB")
 
-        scene_clip = CompositeVideoClip([animated_bg, overlay_clip])
+        # 4. Continuous Ken Burns Motion Zoom Frame Generator (Guaranteed Animated Output)
+        def make_animated_frame(t, pil_img=composed_pil, dur=slide_dur, w=width, h=height):
+            scale = 1.0 + 0.12 * (t / max(dur, 0.1))
+            w_scaled, h_scaled = int(w * scale), int(h * scale)
+            resized = pil_img.resize((w_scaled, h_scaled), PIL.Image.LANCZOS)
+            
+            crop_x = (w_scaled - w) // 2
+            crop_y = (h_scaled - h) // 2
+            cropped = resized.crop((crop_x, crop_y, crop_x + w, crop_y + h))
+            
+            # Draw real-time animated glowing progress bar across screen bottom
+            frame_draw = PIL.ImageDraw.Draw(cropped)
+            progress_ratio = min(t / max(dur, 0.1), 1.0)
+            bar_y = h - 25 if is_short else h - 15
+            frame_draw.rectangle([(0, bar_y), (int(w * progress_ratio), bar_y + 15)], fill=(56, 189, 248))
+            
+            return np.array(cropped)
+
+        scene_clip = VideoClip(make_animated_frame, duration=slide_dur)
         slide_clips.append(scene_clip)
 
     final_video = concatenate_videoclips(slide_clips, method="compose")
     final_video = final_video.set_audio(final_audio)
     final_video.write_videofile(output_file, fps=24, codec="libx264", audio_codec="aac")
-    print(f"   ✅ Video rendered successfully: {output_file}")
+    print(f"   ✅ Motion Animated Video rendered: {output_file}")
     return output_file
 
 # ==========================================
-# STEP 4: YouTube API Uploader
+# STEP 5: YouTube API Uploader with Custom Thumbnail Support
 # ==========================================
-def upload_to_youtube(video_file, title, description, tags):
+def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None):
     print(f"🚀 Uploading {video_file} to YouTube...")
     client_id = os.environ.get("YOUTUBE_CLIENT_ID")
     client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
@@ -424,11 +490,7 @@ def upload_to_youtube(video_file, title, description, tags):
     }
     
     media = MediaFileUpload(video_file, chunksize=-1, resumable=True, mimetype="video/mp4")
-    request = youtube.videos().insert(
-        part="snippet,status",
-        body=body,
-        media_body=media
-    )
+    request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
     
     response = None
     while response is None:
@@ -438,6 +500,16 @@ def upload_to_youtube(video_file, title, description, tags):
             
     video_id = response.get("id")
     print(f"🎉 SUCCESS! Published live to YouTube: https://youtu.be/{video_id}")
+
+    # Set Custom Thumbnail via API
+    if thumbnail_file and os.path.exists(thumbnail_file):
+        try:
+            print(f"🖼️ Setting custom thumbnail for Video ID {video_id}...")
+            youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_file)).execute()
+            print("   ✅ Custom thumbnail published successfully!")
+        except Exception as e:
+            print(f"   ⚠️ Could not set thumbnail ({e}). (Ensure YouTube channel is phone verified for custom thumbnails).")
+
     return video_id
 
 # ==========================================
@@ -452,6 +524,8 @@ if __name__ == "__main__":
     short_full_script = " ".join([s.get("text", "") for s in short_slides])
     asyncio.run(create_voiceover(short_full_script, "voice_short.mp3"))
     
+    thumb_short = generate_thumbnail(short_data["title"], "BREAKING AI", is_short=True, output_file="thumb_short.png")
+    
     short_file = render_multislide_video(
         short_data["title"], 
         short_slides, 
@@ -459,13 +533,15 @@ if __name__ == "__main__":
         is_short=True, 
         output_file="short_video.mp4"
     )
-    upload_to_youtube(short_file, short_data["title"], short_data["description"], short_data["tags"])
+    upload_to_youtube(short_file, short_data["title"], short_data["description"], short_data["tags"], thumbnail_file=thumb_short)
     
     # 2. Render & Upload Long Video (16:9 Widescreen)
     long_data = pkg["long"]
     long_slides = long_data.get("slides", [])
     long_full_script = " ".join([s.get("text", "") for s in long_slides])
     asyncio.run(create_voiceover(long_full_script, "voice_long.mp3"))
+    
+    thumb_long = generate_thumbnail(long_data["title"], "AI BREAKTHROUGH", is_short=False, output_file="thumb_long.png")
     
     long_file = render_multislide_video(
         long_data["title"], 
@@ -474,4 +550,4 @@ if __name__ == "__main__":
         is_short=False, 
         output_file="long_video.mp4"
     )
-    upload_to_youtube(long_file, long_data["title"], long_data["description"], long_data["tags"])
+    upload_to_youtube(long_file, long_data["title"], long_data["description"], long_data["tags"], thumbnail_file=thumb_long)
