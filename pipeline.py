@@ -14,7 +14,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
 # ==========================================
-# STEP 1: AI Script Generation (Gemini + Groq Active Models)
+# STEP 1: AI Script Generation (Dynamic Model Discovery)
 # ==========================================
 def generate_script():
     print("🧠 Step 1: Requesting educational script from AI...")
@@ -32,10 +32,12 @@ Return ONLY a JSON object with this exact structure:
   "script": "OpenAI just unveiled a massive update that might change software development forever. Here is what you need to know in 40 seconds..."
 }"""
 
-    # --- PRIMARY PROVIDER: Gemini API with Retries ---
+    # --- PRIMARY PROVIDER: Gemini API with Dynamic Model Discovery ---
     if gemini_key:
         try:
             client = genai.Client(api_key=gemini_key)
+            
+            # Try gemini-3.8-flash first
             for attempt in range(1, 4):
                 try:
                     print(f"   Attempting Primary Provider: Gemini API (gemini-3.8-flash, Try {attempt}/3)...")
@@ -50,37 +52,60 @@ Return ONLY a JSON object with this exact structure:
                     print(f"   ✅ Gemini success! Title: {content['title']}")
                     return content
                 except Exception as e:
-                    print(f"   ⚠️ Gemini API attempt {attempt} failed: {e}")
+                    print(f"   ⚠️ Gemini gemini-3.8-flash attempt {attempt} failed: {e}")
                     if attempt < 3:
-                        wait_time = attempt * 15
-                        print(f"   Pausing {wait_time} seconds for server capacity to clear...")
-                        time.sleep(wait_time)
-        except Exception as e:
-            print(f"   ⚠️ Gemini client initialization error: {e}")
+                        time.sleep(5)
 
-    # --- BACKUP PROVIDER: Groq API with Active Production Models ---
+            # Dynamic Gemini Fallback
+            print("   ⚠️ gemini-3.8-flash unavailable. Discovering other active Gemini models...")
+            for m in client.models.list():
+                model_id = m.name.replace("models/", "")
+                if "flash" in model_id or "pro" in model_id:
+                    try:
+                        print(f"   Trying Gemini model: '{model_id}'...")
+                        response = client.models.generate_content(
+                            model=model_id,
+                            contents=prompt,
+                            config=types.GenerateContentConfig(
+                                response_mime_type="application/json",
+                            ),
+                        )
+                        content = json.loads(response.text.strip())
+                        print(f"   ✅ Gemini ('{model_id}') success! Title: {content['title']}")
+                        return content
+                    except Exception as e:
+                        print(f"   ⚠️ Gemini model '{model_id}' failed: {e}")
+
+        except Exception as e:
+            print(f"   ⚠️ Gemini API initialization error: {e}")
+
+    # --- BACKUP PROVIDER: Groq API with Dynamic Model Discovery ---
     if groq_key:
-        groq_models = [
-            "llama-3.1-8b-instant",
-            "llama-3.3-70b-specdec",
-            "deepseek-r1-distill-llama-70b",
-            "qwen-2.5-32b"
-        ]
-        groq_client = Groq(api_key=groq_key)
-        for model in groq_models:
-            try:
-                print(f"   Attempting Backup Provider: Groq API ({model})...")
-                completion = groq_client.chat.completions.create(
-                    model=model,
-                    messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"},
-                )
-                raw_json = completion.choices.message.content
-                content = json.loads(raw_json.strip())
-                print(f"   ✅ Groq ({model}) success! Title: {content['title']}")
-                return content
-            except Exception as e:
-                print(f"   ⚠️ Groq model '{model}' failed: {e}")
+        try:
+            print("   Attempting Backup Provider: Groq API...")
+            groq_client = Groq(api_key=groq_key)
+            
+            # Dynamically fetch current active models from Groq endpoint
+            models_data = groq_client.models.list().data
+            active_groq_models = [m.id for m in models_data if "whisper" not in m.id and "safetensors" not in m.id]
+            print(f"   Discovered {len(active_groq_models)} active Groq models.")
+
+            for model in active_groq_models:
+                try:
+                    print(f"   Trying Groq model: '{model}'...")
+                    completion = groq_client.chat.completions.create(
+                        model=model,
+                        messages=[{"role": "user", "content": prompt}],
+                        response_format={"type": "json_object"},
+                    )
+                    raw_json = completion.choices.message.content
+                    content = json.loads(raw_json.strip())
+                    print(f"   ✅ Groq ('{model}') success! Title: {content['title']}")
+                    return content
+                except Exception as e:
+                    print(f"   ⚠️ Groq model '{model}' failed: {e}")
+        except Exception as e:
+            print(f"   ⚠️ Groq API initialization error: {e}")
     else:
         print("   ⚠️ GROQ_API_KEY environment variable is not set or empty in GitHub.")
 
