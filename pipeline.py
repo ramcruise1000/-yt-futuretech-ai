@@ -1,8 +1,10 @@
 import os
 import json
+import time
 import asyncio
 from google import genai
 from google.genai import types
+from google.genai.errors import ServerError, APIError
 from PIL import Image, ImageDraw
 import edge_tts
 from moviepy.editor import ImageClip, AudioFileClip
@@ -12,7 +14,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
 # ==========================================
-# STEP 1: Gemini API Script Generation
+# STEP 1: Gemini API Script Generation (with Auto-Retry)
 # ==========================================
 def generate_script():
     print("🧠 Step 1: Requesting educational script from Gemini API...")
@@ -33,17 +35,35 @@ Return a JSON object with this exact structure:
   "script": "OpenAI just unveiled a massive update that might change software development forever. Here is what you need to know in 40 seconds..."
 }"""
 
-    response = client.models.generate_content(
-        model="gemini-3.8-flash",
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-        ),
-    )
-    
-    content = json.loads(response.text.strip())
-    print(f"   Generated Title: {content['title']}")
-    return content
+    # List of models to try if high-demand spikes occur
+    models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
+    max_retries = 3
+
+    for model in models_to_try:
+        for attempt in range(1, max_retries + 1):
+            try:
+                print(f"   Attempting model '{model}' (Try {attempt}/{max_retries})...")
+                response = client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                    ),
+                )
+                content = json.loads(response.text.strip())
+                print(f"   ✅ Successfully generated script with model '{model}'!")
+                print(f"   Generated Title: {content['title']}")
+                return content
+            except Exception as e:
+                err_str = str(e)
+                if "503" in err_str or "UNAVAILABLE" in err_str or "high demand" in err_str:
+                    print(f"   ⚠️ Model '{model}' hit a temporary 503 load spike. Pausing 10 seconds before retrying...")
+                    time.sleep(10)
+                else:
+                    print(f"   ⚠️ Error with '{model}': {e}. Trying fallback model...")
+                    break
+                    
+    raise RuntimeError("❌ All Gemini API attempts failed due to persistent server load. Please trigger workflow again in 2 minutes.")
 
 # ==========================================
 # STEP 2: Edge-TTS Neural Voice Generation
