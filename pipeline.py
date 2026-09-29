@@ -4,7 +4,6 @@ import time
 import asyncio
 from google import genai
 from google.genai import types
-from google.genai.errors import ServerError, APIError
 from PIL import Image, ImageDraw
 import edge_tts
 from moviepy.editor import ImageClip, AudioFileClip
@@ -35,8 +34,8 @@ Return a JSON object with this exact structure:
   "script": "OpenAI just unveiled a massive update that might change software development forever. Here is what you need to know in 40 seconds..."
 }"""
 
-    # List of models to try if high-demand spikes occur
-    models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
+    # Model specified by Google API endpoint
+    models_to_try = ["gemini-3.8-flash"]
     max_retries = 3
 
     for model in models_to_try:
@@ -60,10 +59,10 @@ Return a JSON object with this exact structure:
                     print(f"   ⚠️ Model '{model}' hit a temporary 503 load spike. Pausing 10 seconds before retrying...")
                     time.sleep(10)
                 else:
-                    print(f"   ⚠️ Error with '{model}': {e}. Trying fallback model...")
-                    break
+                    print(f"   ⚠️ Error with '{model}': {e}. Retrying attempt {attempt}/{max_retries}...")
+                    time.sleep(5)
                     
-    raise RuntimeError("❌ All Gemini API attempts failed due to persistent server load. Please trigger workflow again in 2 minutes.")
+    raise RuntimeError("❌ All Gemini API attempts failed. Please verify API key and model access.")
 
 # ==========================================
 # STEP 2: Edge-TTS Neural Voice Generation
