@@ -2,9 +2,9 @@ import os
 import json
 import time
 import asyncio
-import requests
 from google import genai
 from google.genai import types
+from groq import Groq
 from PIL import Image, ImageDraw
 import edge_tts
 from moviepy.editor import ImageClip, AudioFileClip
@@ -14,7 +14,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
 # ==========================================
-# STEP 1: AI Script Generation (Gemini Retries + Groq Fallback)
+# STEP 1: AI Script Generation (Gemini + Groq SDK Fallback)
 # ==========================================
 def generate_script():
     print("🧠 Step 1: Requesting educational script from AI...")
@@ -34,51 +34,47 @@ Return ONLY a JSON object with this exact structure:
 
     # --- PRIMARY PROVIDER: Gemini API with Retries ---
     if gemini_key:
-        client = genai.Client(api_key=gemini_key)
-        for attempt in range(1, 4):
-            try:
-                print(f"   Attempting Primary Provider: Gemini API (gemini-3.8-flash, Try {attempt}/3)...")
-                response = client.models.generate_content(
-                    model="gemini-3.8-flash",
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                    ),
-                )
-                content = json.loads(response.text.strip())
-                print(f"   ✅ Gemini success! Title: {content['title']}")
-                return content
-            except Exception as e:
-                print(f"   ⚠️ Gemini API attempt {attempt} failed: {e}")
-                if attempt < 3:
-                    print("   Pausing 10 seconds before retrying Gemini...")
-                    time.sleep(10)
+        try:
+            client = genai.Client(api_key=gemini_key)
+            for attempt in range(1, 4):
+                try:
+                    print(f"   Attempting Primary Provider: Gemini API (gemini-3.8-flash, Try {attempt}/3)...")
+                    response = client.models.generate_content(
+                        model="gemini-3.8-flash",
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                        ),
+                    )
+                    content = json.loads(response.text.strip())
+                    print(f"   ✅ Gemini success! Title: {content['title']}")
+                    return content
+                except Exception as e:
+                    print(f"   ⚠️ Gemini API attempt {attempt} failed: {e}")
+                    if attempt < 3:
+                        print("   Pausing 10 seconds before retrying Gemini...")
+                        time.sleep(10)
+        except Exception as e:
+            print(f"   ⚠️ Gemini client error: {e}")
 
-    # --- BACKUP PROVIDER: Groq API (Llama 3.3 70B) ---
+    # --- BACKUP PROVIDER: Official Groq Python SDK ---
     if groq_key:
         try:
             print("   Attempting Backup Provider: Groq API (llama-3.3-70b-versatile)...")
-            url = "https://api.groq.com/openai/v1/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {groq_key}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "model": "llama-3.3-70b-versatile",
-                "messages": [{"role": "user", "content": prompt}],
-                "response_format": {"type": "json_object"}
-            }
-            res = requests.post(url, json=payload, headers=headers)
-            res.raise_for_status()
-            data = res.json()
-            raw_json = data["choices"]["message"]["content"]
+            groq_client = Groq(api_key=groq_key)
+            completion = groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"},
+            )
+            raw_json = completion.choices[0].message.content
             content = json.loads(raw_json.strip())
             print(f"   ✅ Groq Llama-3 success! Title: {content['title']}")
             return content
         except Exception as e:
             print(f"   ⚠️ Groq API failed: {e}")
     else:
-        print("   ⚠️ GROQ_API_KEY secret is missing or empty in GitHub repository settings.")
+        print("   ⚠️ GROQ_API_KEY environment variable is not set or empty in GitHub.")
 
     raise RuntimeError("❌ Both Gemini and Groq AI attempts failed. Please verify API keys.")
 
