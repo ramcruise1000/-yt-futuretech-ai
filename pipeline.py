@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import asyncio
 import requests
 from google import genai
@@ -13,7 +14,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
 # ==========================================
-# STEP 1: AI Script Generation (Gemini + Groq Fallback)
+# STEP 1: AI Script Generation (Gemini Retries + Groq Fallback)
 # ==========================================
 def generate_script():
     print("🧠 Step 1: Requesting educational script from AI...")
@@ -31,23 +32,27 @@ Return ONLY a JSON object with this exact structure:
   "script": "OpenAI just unveiled a massive update that might change software development forever. Here is what you need to know in 40 seconds..."
 }"""
 
-    # --- PRIMARY PROVIDER: Gemini API ---
+    # --- PRIMARY PROVIDER: Gemini API with Retries ---
     if gemini_key:
-        try:
-            print("   Attempting Primary Provider: Gemini API (gemini-3.8-flash)...")
-            client = genai.Client(api_key=gemini_key)
-            response = client.models.generate_content(
-                model="gemini-3.8-flash",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                ),
-            )
-            content = json.loads(response.text.strip())
-            print(f"   ✅ Gemini success! Title: {content['title']}")
-            return content
-        except Exception as e:
-            print(f"   ⚠️ Gemini API failed ({e}). Switching to Groq Llama-3 fallback...")
+        client = genai.Client(api_key=gemini_key)
+        for attempt in range(1, 4):
+            try:
+                print(f"   Attempting Primary Provider: Gemini API (gemini-3.8-flash, Try {attempt}/3)...")
+                response = client.models.generate_content(
+                    model="gemini-3.8-flash",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                    ),
+                )
+                content = json.loads(response.text.strip())
+                print(f"   ✅ Gemini success! Title: {content['title']}")
+                return content
+            except Exception as e:
+                print(f"   ⚠️ Gemini API attempt {attempt} failed: {e}")
+                if attempt < 3:
+                    print("   Pausing 10 seconds before retrying Gemini...")
+                    time.sleep(10)
 
     # --- BACKUP PROVIDER: Groq API (Llama 3.3 70B) ---
     if groq_key:
@@ -72,8 +77,10 @@ Return ONLY a JSON object with this exact structure:
             return content
         except Exception as e:
             print(f"   ⚠️ Groq API failed: {e}")
+    else:
+        print("   ⚠️ GROQ_API_KEY secret is missing or empty in GitHub repository settings.")
 
-    raise RuntimeError("❌ Both Gemini and Groq AI attempts failed. Please check your API keys.")
+    raise RuntimeError("❌ Both Gemini and Groq AI attempts failed. Please verify API keys.")
 
 # ==========================================
 # STEP 2: Edge-TTS Neural Voice Generation
