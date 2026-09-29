@@ -1,7 +1,7 @@
 import os
 import json
 import asyncio
-import requests
+from google import genai
 from PIL import Image, ImageDraw
 import edge_tts
 from moviepy.editor import ImageClip, AudioFileClip
@@ -16,7 +16,10 @@ from google.auth.transport.requests import Request
 def generate_script():
     print("🧠 Step 1: Requesting educational script from Gemini API...")
     api_key = os.environ.get("GEMINI_API_KEY")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    if not api_key:
+        raise ValueError("❌ GEMINI_API_KEY secret is missing or empty! Verify GitHub Repository Secrets.")
+
+    client = genai.Client(api_key=api_key)
     
     prompt = """You are an expert AI & Tech news content creator for YouTube Shorts.
 Generate an educational, highly engaging 40-second video script about a major recent breakthrough in AI (e.g., OpenAI, Gemini, Robotics, or Autonomous Agents).
@@ -29,14 +32,15 @@ Return ONLY a valid JSON object with no markdown formatting:
   "script": "OpenAI just unveiled a massive update that might change software development forever. Here is what you need to know in 40 seconds..."
 }"""
 
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    res = requests.post(url, json=payload)
-    res.raise_for_status()
-    data = res.json()
-    raw_text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+    )
     
+    raw_text = response.text.strip()
     if "```" in raw_text:
-        raw_text = raw_text.split("```")[1]
+        parts = raw_text.split("```")
+        raw_text = parts[1] if len(parts) > 1 else parts[0]
         if raw_text.startswith("json"):
             raw_text = raw_text[4:]
             
@@ -67,37 +71,36 @@ def create_video(title_text, script_text, audio_file="voiceover.mp3", output_fil
     draw = ImageDraw.Draw(img)
     
     # Top Header Badge
-    draw.rectangle([80, 180, 1000, 320], fill=(30, 41, 59), outline=(56, 189, 248), width=3)
-    draw.text((120, 230), "FUTURETECH AI PULSE", fill=(56, 189, 248))
+    draw.rectangle([50, 180, 1030, 300], fill=(30, 41, 59), outline=(56, 189, 248), width=3)
+    draw.text((120, 220), "FUTURETECH AI PULSE", fill=(56, 189, 248))
     
     # Headline Box
-    draw.rectangle([80, 360, 1000, 560], fill=(15, 23, 42))
-    draw.text((100, 400), title_text[:75], fill=(255, 255, 255))
+    draw.rectangle([50, 340, 1030, 600], fill=(15, 23, 42))
+    draw.text((80, 380), title_text[:75], fill=(255, 255, 255))
     
     # Subtitles / Script Card
-    draw.rectangle([80, 620, 1000, 1600], fill=(30, 41, 59))
-    draw.text((120, 680), "TODAY'S AI BREAKTHROUGH:", fill=(244, 63, 94))
+    draw.rectangle([50, 640, 1030, 1600], fill=(30, 41, 59))
+    draw.text((80, 680), "TODAY'S AI BREAKTHROUGH:", fill=(244, 63, 94))
     
     # Word Wrap Script
-    lines = []
     words = script_text.split()
-    current_line = []
+    lines, current_line = [], []
     for word in words:
         current_line.append(word)
-        if len(" ".join(current_line)) > 30:
+        if len(" ".join(current_line)) > 32:
             lines.append(" ".join(current_line[:-1]))
             current_line = [word]
     if current_line:
         lines.append(" ".join(current_line))
         
-    y_offset = 760
+    y_offset = 750
     for line in lines[:15]:
-        draw.text((120, y_offset), line, fill=(226, 232, 240))
+        draw.text((80, y_offset), line, fill=(226, 232, 240))
         y_offset += 50
         
     # Bottom Call to Action
-    draw.rectangle([80, 1660, 1000, 1780], fill=(56, 189, 248))
-    draw.text((250, 1700), "SUBSCRIBE FOR DAILY AI NEWS", fill=(15, 23, 42))
+    draw.rectangle([50, 1650, 1030, 1780], fill=(56, 189, 248))
+    draw.text((180, 1700), "SUBSCRIBE FOR DAILY AI NEWS", fill=(15, 23, 42))
     
     frame_path = "frame.png"
     img.save(frame_path)
