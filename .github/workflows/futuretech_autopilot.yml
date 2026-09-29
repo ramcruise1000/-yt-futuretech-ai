@@ -21,7 +21,7 @@ jobs:
       - name: Install Media & Speech Engines
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
-          pip install requests feedparser edge-tts moviepy==1.0.3 pillow google-api-python-client google-auth-oauthlib google-genai groq
+          pip install requests feedparser edge-tts moviepy==1.0.3 pillow==9.5.0 google-api-python-client google-auth-oauthlib google-genai groq
 
       - name: Run Full Dual-Format AI Pipeline
         env:
