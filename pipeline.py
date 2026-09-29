@@ -3,19 +3,21 @@ import json
 import time
 import random
 import asyncio
+import warnings
 import requests
 import feedparser
 import urllib.parse
+from datetime import datetime
+
+# Clean Pillow compatibility fix without deprecation warnings
 import PIL.Image
-# Fix MoviePy compatibility with modern Pillow versions
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 if not hasattr(PIL.Image, 'ANTIALIAS'):
     PIL.Image.ANTIALIAS = getattr(PIL.Image, 'LANCZOS', getattr(PIL.Image, 'Resampling', PIL.Image).LANCZOS)
 
-from datetime import datetime
 from google import genai
 from google.genai import types
 from groq import Groq
-from PIL import Image, ImageDraw
 import edge_tts
 from moviepy.editor import (
     ImageClip, AudioFileClip, CompositeVideoClip, 
@@ -108,47 +110,54 @@ Return ONLY a JSON object with this exact structure:
     if gemini_key:
         try:
             client = genai.Client(api_key=gemini_key)
-            for attempt in range(1, 4):
-                try:
-                    print(f"   Attempting Gemini API (gemini-3.8-flash, Try {attempt}/3)...")
-                    response = client.models.generate_content(
-                        model="gemini-3.8-flash",
-                        contents=prompt,
-                        config=types.GenerateContentConfig(
-                            response_mime_type="application/json",
-                        ),
-                    )
-                    content = json.loads(response.text.strip())
-                    print("   ✅ Gemini success for Dual Scripts!")
-                    return content
-                except Exception as e:
-                    print(f"   ⚠️ Gemini attempt {attempt} failed: {e}")
-                    time.sleep(5)
+            print("   Attempting Gemini API (gemini-3.8-flash)...")
+            response = client.models.generate_content(
+                model="gemini-3.8-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                ),
+            )
+            content = json.loads(response.text.strip())
+            if isinstance(content, dict) and "short" in content and "long" in content:
+                print("   ✅ Gemini success for Dual Scripts!")
+                return content
         except Exception as e:
-            print(f"   ⚠️ Gemini client error: {e}")
+            print(f"   ⚠️ Gemini primary attempt failed ({e}). Switching to Groq fallback...")
 
-    # Backup Provider: Groq API
+    # Backup Provider: Groq API (Strict Chat LLM Filtering)
     if groq_key:
         try:
             print("   Attempting Backup Provider: Groq API...")
             groq_client = Groq(api_key=groq_key)
             models_data = groq_client.models.list().data
-            active_models = [m.id for m in models_data if "whisper" not in m.id and "safetensors" not in m.id]
+            
+            # Filter out guard, whisper, embed, and non-chat models
+            active_chat_models = [
+                m.id for m in models_data 
+                if not any(bad in m.id.lower() for bad in ["whisper", "safetensors", "guard", "embed"])
+            ]
 
-            for model in active_models:
+            for model in active_chat_models:
                 try:
+                    print(f"   Trying Groq model: '{model}'...")
                     completion = groq_client.chat.completions.create(
                         model=model,
                         messages=[{"role": "user", "content": prompt}],
+                        response_format={"type": "json_object"}
                     )
                     raw_text = completion.choices[0].message.content.strip()
                     if "```json" in raw_text:
                         raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+                    elif "```" in raw_text:
+                        raw_text = raw_text.split("```")[1].split("```")[0].strip()
+                        
                     content = json.loads(raw_text)
-                    print(f"   ✅ Groq ({model}) success for Dual Scripts!")
-                    return content
+                    if isinstance(content, dict) and "short" in content and "long" in content:
+                        print(f"   ✅ Groq ({model}) success for Dual Scripts!")
+                        return content
                 except Exception as err:
-                    print(f"   ⚠️ Groq model '{model}' failed: {err}")
+                    print(f"   ⚠️ Groq model '{model}' skipped: {err}")
         except Exception as e:
             print(f"   ⚠️ Groq API error: {e}")
 
@@ -183,7 +192,7 @@ def get_background_music(output_file="bg_music.mp3"):
 # STEP 3: Animated Background Engine (Pan & Zoom Animation)
 # ==========================================
 def download_animated_backgrounds(prompts, total_duration, width=1080, height=1920):
-    print(f"🖼️ Generating Animated Backgrounds ({width}x{height}) with Ken Burns Motion...")
+    print(f"🖼️ Generating Animated Backgrounds ({width}x{height}) with Motion...")
     image_paths = []
     per_image_dur = total_duration / len(prompts)
 
@@ -202,15 +211,13 @@ def download_animated_backgrounds(prompts, total_duration, width=1080, height=19
 
     if not image_paths:
         file_path = f"fallback_{width}x{height}.png"
-        img = Image.new('RGB', (width, height), color=(15, 23, 42))
+        img = PIL.Image.new('RGB', (width, height), color=(15, 23, 42))
         img.save(file_path)
         image_paths.append((file_path, total_duration))
 
     clips = []
     for path, dur in image_paths:
-        # Create image clip and apply continuous zoom-in animation
         img_clip = ImageClip(path).set_duration(dur)
-        # Smooth zoom animation from 1.0x to 1.12x scale over time
         animated_clip = img_clip.resize(lambda t: 1.0 + 0.02 * t)
         clips.append(animated_clip)
 
@@ -236,9 +243,8 @@ def create_video_short(title_text, script_text, prompts, audio_file, output_file
 
     bg_video = download_animated_backgrounds(prompts, duration, width=1080, height=1920)
 
-    # Render Subtitle Card Overlay
-    overlay_img = Image.new('RGBA', (1080, 1920), color=(0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay_img)
+    overlay_img = PIL.Image.new('RGBA', (1080, 1920), color=(0, 0, 0, 0))
+    draw = PIL.ImageDraw.Draw(overlay_img)
     
     draw.rectangle([(80, 140), (1000, 240)], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=3)
     draw.text((120, 175), "FUTURETECH AI PULSE", fill=(56, 189, 248))
@@ -292,18 +298,14 @@ def create_video_long(title_text, script_text, prompts, audio_file, output_file=
     else:
         final_audio = voice_audio
 
-    # Widescreen 1920x1080 background
     bg_video = download_animated_backgrounds(prompts, duration, width=1920, height=1080)
 
-    # Widescreen Overlay
-    overlay_img = Image.new('RGBA', (1920, 1080), color=(0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay_img)
+    overlay_img = PIL.Image.new('RGBA', (1920, 1080), color=(0, 0, 0, 0))
+    draw = PIL.ImageDraw.Draw(overlay_img)
     
-    # Top Left Channel Badge
     draw.rectangle([(100, 60), (700, 130)], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=2)
     draw.text((130, 82), "FUTURETECH AI PULSE | DEEP DIVE", fill=(56, 189, 248))
     
-    # Center-Bottom Transcript Card
     draw.rectangle([(100, 160), (1820, 920)], fill=(15, 23, 42, 215))
     draw.text((140, 200), title_text[:110], fill=(255, 255, 255))
     draw.rectangle([(140, 270), (1780, 272)], fill=(56, 189, 248))
@@ -323,7 +325,6 @@ def create_video_long(title_text, script_text, prompts, audio_file, output_file=
         draw.text((140, y_offset), line, fill=(226, 232, 240))
         y_offset += 50
         
-    # Subscribe Banner
     draw.rectangle([(100, 960), (1820, 1030)], fill=(56, 189, 248, 230))
     draw.text((650, 980), "SUBSCRIBE FOR DAILY IN-DEPTH AI COVERAGE", fill=(15, 23, 42))
     
@@ -391,10 +392,9 @@ def upload_to_youtube(video_file, title, description, tags):
 # MAIN EXECUTION ROUTINE
 # ==========================================
 if __name__ == "__main__":
-    # 1. Generate Dual Scripts
     pkg = generate_dual_scripts()
     
-    # 2. Render & Upload Short Video (9:16, ~40s)
+    # 1. Render & Upload Short Video (9:16)
     short_data = pkg["short"]
     asyncio.run(create_voiceover(short_data["script"], "voice_short.mp3"))
     short_file = create_video_short(
@@ -406,7 +406,7 @@ if __name__ == "__main__":
     )
     upload_to_youtube(short_file, short_data["title"], short_data["description"], short_data["tags"])
     
-    # 3. Render & Upload Long Video (16:9, 1-2 mins)
+    # 2. Render & Upload Long Video (16:9)
     long_data = pkg["long"]
     asyncio.run(create_voiceover(long_data["script"], "voice_long.mp3"))
     long_file = create_video_long(
