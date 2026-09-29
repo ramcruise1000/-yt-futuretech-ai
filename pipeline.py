@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import time
 import random
@@ -28,6 +29,13 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
+
+# Helper function to sanitize text for PIL font rendering (removes emojis/unsupported Unicode)
+def sanitize_text(text):
+    if not text:
+        return ""
+    # Strip non-ASCII/emoji characters that cause latin-1 encoding errors in PIL
+    return re.sub(r'[^\x00-\x7F]+', '', text).strip()
 
 # ==========================================
 # STEP 0: Live Breaking News Ingestion
@@ -126,33 +134,27 @@ Return ONLY a JSON object with this exact structure:
         except Exception as e:
             print(f"   ⚠️ Gemini primary attempt failed ({e}). Switching to Groq fallback...")
 
-    # Backup Provider: Groq API (Fixed Indexing & Standard Models)
+    # Backup Provider: Groq API
     if groq_key:
         try:
             print("   Attempting Backup Provider: Groq API...")
             groq_client = Groq(api_key=groq_key)
             
-            # Prioritize primary stable models first
-            target_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
-            
-            # Dynamically append active models, filtering out experimental ones
             models_data = groq_client.models.list().data
-            for m in models_data:
-                mid = m.id.lower()
-                if not any(bad in mid for bad in ["whisper", "safetensors", "guard", "embed", "canopylabs", "orpheus", "allam"]):
-                    if m.id not in target_models:
-                        target_models.append(m.id)
+            active_chat_models = [
+                m.id for m in models_data 
+                if not any(bad in m.id.lower() for bad in ["whisper", "safetensors", "guard", "embed", "canopylabs", "orpheus", "allam"])
+            ]
 
-            for model in target_models:
+            for model in active_chat_models:
                 try:
                     print(f"   Trying Groq model: '{model}'...")
                     completion = groq_client.chat.completions.create(
                         model=model,
                         messages=[{"role": "user", "content": prompt}],
-                        response_format={"type": "json_object"}
+                        response_format={"type": "json_object"},
+                        max_tokens=800
                     )
-                    
-                    # Fix: Access choices[0].message.content
                     raw_text = completion.choices[0].message.content.strip()
                     
                     if "```json" in raw_text:
@@ -205,7 +207,8 @@ def download_animated_backgrounds(prompts, total_duration, width=1080, height=19
     per_image_dur = total_duration / len(prompts)
 
     for idx, raw_prompt in enumerate(prompts):
-        encoded_prompt = urllib.parse.quote(f"{raw_prompt}, dark cyber aesthetic, futuristic tech 8k")
+        clean_prompt = sanitize_text(raw_prompt)
+        encoded_prompt = urllib.parse.quote(f"{clean_prompt}, dark cyber aesthetic, futuristic tech 8k")
         url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true"
         file_path = f"bg_{width}x{height}_{idx}.png"
         try:
@@ -236,6 +239,9 @@ def download_animated_backgrounds(prompts, total_duration, width=1080, height=19
 # ==========================================
 def create_video_short(title_text, script_text, prompts, audio_file, output_file="short_video.mp4"):
     print("🎬 Rendering 9:16 Vertical Short with Motion Animation...")
+    title_clean = sanitize_text(title_text)
+    script_clean = sanitize_text(script_text)
+
     voice_audio = AudioFileClip(audio_file)
     duration = voice_audio.duration
     
@@ -258,12 +264,12 @@ def create_video_short(title_text, script_text, prompts, audio_file, output_file
     draw.text((120, 175), "FUTURETECH AI PULSE", fill=(56, 189, 248))
     
     draw.rectangle([(80, 280), (1000, 540)], fill=(15, 23, 42, 230))
-    draw.text((100, 340), title_text[:70], fill=(255, 255, 255))
+    draw.text((100, 340), title_clean[:70], fill=(255, 255, 255))
     
     draw.rectangle([(80, 580), (1000, 1600)], fill=(15, 23, 42, 220))
     draw.text((120, 620), "TODAY'S AI BREAKTHROUGH:", fill=(244, 63, 94))
     
-    words = script_text.split()
+    words = script_clean.split()
     lines, current_line = [], []
     for word in words:
         current_line.append(word)
@@ -293,6 +299,9 @@ def create_video_short(title_text, script_text, prompts, audio_file, output_file
 
 def create_video_long(title_text, script_text, prompts, audio_file, output_file="long_video.mp4"):
     print("🎬 Rendering 16:9 Widescreen 1-2 Min Video with Motion Animation...")
+    title_clean = sanitize_text(title_text)
+    script_clean = sanitize_text(script_text)
+
     voice_audio = AudioFileClip(audio_file)
     duration = voice_audio.duration
     
@@ -315,10 +324,10 @@ def create_video_long(title_text, script_text, prompts, audio_file, output_file=
     draw.text((130, 82), "FUTURETECH AI PULSE | DEEP DIVE", fill=(56, 189, 248))
     
     draw.rectangle([(100, 160), (1820, 920)], fill=(15, 23, 42, 215))
-    draw.text((140, 200), title_text[:110], fill=(255, 255, 255))
+    draw.text((140, 200), title_clean[:110], fill=(255, 255, 255))
     draw.rectangle([(140, 270), (1780, 272)], fill=(56, 189, 248))
     
-    words = script_text.split()
+    words = script_clean.split()
     lines, current_line = [], []
     for word in words:
         current_line.append(word)
