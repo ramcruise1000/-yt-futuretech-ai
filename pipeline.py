@@ -66,7 +66,7 @@ Return ONLY a JSON object with this exact structure:
             res = requests.post(url, json=payload, headers=headers)
             res.raise_for_status()
             data = res.json()
-            raw_json = data["choices"][0]["message"]["content"]
+            raw_json = data["choices"]["message"]["content"]
             content = json.loads(raw_json.strip())
             print(f"   ✅ Groq Llama-3 success! Title: {content['title']}")
             return content
@@ -196,14 +196,3 @@ if __name__ == "__main__":
     asyncio.run(create_voiceover(content["script"], "voiceover.mp3"))
     video_file = create_video(content["title"], content["script"], "voiceover.mp3", "final_video.mp4")
     upload_to_youtube(video_file, content["title"], content["description"], content["tags"])
-Step 3: Add GROQ_API_KEY to .github/workflows/futuretech_autopilot.yml
-Open your .github/workflows/futuretech_autopilot.yml file and add GROQ_API_KEY under env::
-      - name: Run Full AI Content & Upload Pipeline
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-        run: |
-          python pipeline.py
