@@ -4,7 +4,7 @@ on:
   schedule:
     # Runs automatically every day at 14:00 UTC (9:00 AM EST)
     - cron: '0 14 * * *'
-  workflow_dispatch: # Allows manual testing anytime from browser
+  workflow_dispatch: # Allows manual trigger anytime from browser
 
 jobs:
   run-autopilot:
@@ -21,20 +21,13 @@ jobs:
       - name: Install Media & Speech Engines
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
-          pip install google-genai edge-tts moviepy pillow google-api-python-client requests
+          pip install requests edge-tts moviepy pillow google-api-python-client google-auth-oauthlib
 
-      - name: Generate Educational Script & Upload
+      - name: Run Full AI Content & Upload Pipeline
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: |
-          python -c "
-          import os
-          print('--- FutureTech AI Pipeline Running ---')
-          print('1. Requesting educational breakdown from Gemini API...')
-          print('2. Synthesizing natural voice via edge-tts (en-US-ChristopherNeural)...')
-          print('3. Merging dynamic stock visuals & kinetic subtitles via FFmpeg...')
-          print('4. Uploading to YouTube API with syntheticMedia=True metadata flag...')
-          "
+          python pipeline.py
