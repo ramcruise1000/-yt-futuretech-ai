@@ -30,7 +30,7 @@ from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
-# Helper function to sanitize text for PIL font rendering (removes emojis/unsupported Unicode)
+# Helper function to sanitize text for PIL font rendering
 def sanitize_text(text):
     if not text:
         return ""
@@ -55,7 +55,10 @@ def get_trending_news():
                 title = entry.get("title", "")
                 summary = entry.get("summary", "")[:250]
                 if title:
-                    news_items.append(f"Headline: {title} | Context: {summary}")
+                    # Sanitize quotes and newlines to prevent JSON syntax errors
+                    clean_title = title.replace('"', "'").replace("\n", " ")
+                    clean_summary = summary.replace('"', "'").replace("\n", " ")
+                    news_items.append(f"Headline: {clean_title} | Context: {clean_summary}")
         except Exception as e:
             print(f"   ⚠️ RSS Feed error ({url}): {e}")
 
@@ -83,11 +86,13 @@ def generate_dual_scripts():
 
     prompt = f"""You are an expert AI & Tech news content creator for YouTube.
 Timestamp Seed: {current_time}
-Live News Anchor Context: {news_context}
+Live News Context: {news_context}
 
 Generate TWO distinct content packages in JSON format:
 1. "short": A punchy 40-second vertical video script (#Shorts).
 2. "long": An expanded 90-120 second in-depth horizontal video script.
+
+IMPORTANT: Do NOT use internal double quotes inside JSON string values. Use single quotes if needed.
 
 Return ONLY a JSON object with this exact structure:
 {{
@@ -115,29 +120,35 @@ Return ONLY a JSON object with this exact structure:
   }}
 }}"""
 
-    # Primary Provider: Gemini API
+    # --- PRIMARY PROVIDER: Gemini API with 3 Retries ---
     if gemini_key:
         try:
             client = genai.Client(api_key=gemini_key)
-            print("   Attempting Gemini API (gemini-3.8-flash)...")
-            response = client.models.generate_content(
-                model="gemini-3.8-flash",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                ),
-            )
-            content = json.loads(response.text.strip())
-            if isinstance(content, dict) and "short" in content and "long" in content:
-                print("   ✅ Gemini success for Dual Scripts!")
-                return content
+            for attempt in range(1, 4):
+                try:
+                    print(f"   Attempting Gemini API (gemini-3.8-flash, Try {attempt}/3)...")
+                    response = client.models.generate_content(
+                        model="gemini-3.8-flash",
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                        ),
+                    )
+                    content = json.loads(response.text.strip())
+                    if isinstance(content, dict) and "short" in content and "long" in content:
+                        print("   ✅ Gemini success for Dual Scripts!")
+                        return content
+                except Exception as e:
+                    print(f"   ⚠️ Gemini attempt {attempt} failed ({e}).")
+                    if attempt < 3:
+                        time.sleep(5)
         except Exception as e:
-            print(f"   ⚠️ Gemini primary attempt failed ({e}). Switching to Groq fallback...")
+            print(f"   ⚠️ Gemini client error: {e}")
 
-    # Backup Provider: Groq API
+    # --- BACKUP PROVIDER: Groq API with Dual-Mode Fallback ---
     if groq_key:
         try:
-            print("   Attempting Backup Provider: Groq API...")
+            print("   Switching to Backup Provider: Groq API...")
             groq_client = Groq(api_key=groq_key)
             
             models_data = groq_client.models.list().data
@@ -147,25 +158,38 @@ Return ONLY a JSON object with this exact structure:
             ]
 
             for model in active_chat_models:
+                # Mode A: Try with strict JSON mode
                 try:
-                    print(f"   Trying Groq model: '{model}'...")
+                    print(f"   Trying Groq model: '{model}' (JSON mode)...")
                     completion = groq_client.chat.completions.create(
                         model=model,
                         messages=[{"role": "user", "content": prompt}],
                         response_format={"type": "json_object"},
-                        max_tokens=800
+                        max_tokens=1000
                     )
                     raw_text = completion.choices[0].message.content.strip()
-                    
-                    if "```json" in raw_text:
-                        raw_text = raw_text.split("```json")[1].split("```")[0].strip()
-                    elif "```" in raw_text:
-                        raw_text = raw_text.split("```")[1].split("```")[0].strip()
-                        
                     content = json.loads(raw_text)
                     if isinstance(content, dict) and "short" in content and "long" in content:
                         print(f"   ✅ Groq ({model}) success for Dual Scripts!")
                         return content
+                except Exception:
+                    pass
+
+                # Mode B: Fallback without strict JSON mode constraint
+                try:
+                    print(f"   Retrying Groq model: '{model}' (Standard mode)...")
+                    completion = groq_client.chat.completions.create(
+                        model=model,
+                        messages=[{"role": "user", "content": prompt}],
+                        max_tokens=1000
+                    )
+                    raw_text = completion.choices[0].message.content.strip()
+                    json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+                    if json_match:
+                        content = json.loads(json_match.group(0))
+                        if isinstance(content, dict) and "short" in content and "long" in content:
+                            print(f"   ✅ Groq ({model}) success via regex extraction!")
+                            return content
                 except Exception as err:
                     print(f"   ⚠️ Groq model '{model}' skipped: {err}")
         except Exception as e:
