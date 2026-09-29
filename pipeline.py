@@ -37,7 +37,7 @@ def sanitize_text(text):
     return re.sub(r'[^\x00-\x7F]+', '', text).strip()
 
 # ==========================================
-# STEP 0: Strictly AI & Tech News Ingestion
+# STEP 0: Strictly AI & Emerging Tech News Ingestion
 # ==========================================
 def get_trending_news():
     print("📰 Step 0: Scraping STRICT AI & Tech news via RSS...")
@@ -46,15 +46,15 @@ def get_trending_news():
         "https://www.mittechnologyreview.com/feed/",
         "https://feeds.arstechnica.com/arstechnica/index"
     ]
-    ai_keywords = ["ai", "artificial intelligence", "nvidia", "openai", "google", "chip", "robot", "quantum", "llm", "software", "agent", "model", "tech"]
+    ai_keywords = ["ai", "artificial intelligence", "nvidia", "openai", "chip", "robot", "quantum", "llm", "software agent", "neural", "deep learning", "machine learning", "anthropic", "gemini"]
     news_items = []
 
     for url in rss_feeds:
         try:
             feed = feedparser.parse(url)
-            for entry in feed.entries[:5]:
+            for entry in feed.entries[:8]:
                 title = entry.get("title", "")
-                summary = entry.get("summary", "")[:250]
+                summary = entry.get("summary", "")[:300]
                 full_text = f"{title} {summary}".lower()
                 
                 # Enforce strict AI & Tech relevance filter
@@ -71,14 +71,16 @@ def get_trending_news():
         return selected_news
     
     fallback_topics = [
-        "Headline: OpenAI Releases Autonomous Coding Agents | Summary: New AI system automates software engineering.",
-        "Headline: NVIDIA Unveils Next-Gen AI Supercomputing Chips | Summary: Breakthrough architecture accelerates LLM training.",
-        "Headline: Humanoid AI Robots Achieve Precision Assembly | Summary: Neural network control allows real-time adaptive robotics."
+        "Headline: OpenAI Advances Autonomous AI Coding Agents | Summary: Next-generation neural models automate end-to-end software engineering workflows with self-correcting logic.",
+        "Headline: NVIDIA Unveils Next-Gen AI Supercomputing Architecture | Summary: Massive GPU clusters accelerate multi-trillion parameter LLM training and real-time world simulation.",
+        "Headline: Humanoid AI Robotics Breakthrough in Autonomous Assembly | Summary: Neural network control enables vision-guided precision dexterity in industrial automation."
     ]
-    return random.choice(fallback_topics)
+    selected_fallback = random.choice(fallback_topics)
+    print(f"   ✅ Selected Fallback AI Topic: {selected_fallback[:90]}...")
+    return selected_fallback
 
 # ==========================================
-# STEP 1: Multi-Provider AI Engine (Gemini -> Groq -> OpenRouter -> Fallback)
+# STEP 1: Multi-Provider AI Engine (Strict Length & AI Topic Mandate)
 # ==========================================
 def generate_dual_scripts():
     print("🧠 Step 1: Generating Animated Multi-Slide AI & Tech News Package...")
@@ -88,35 +90,43 @@ def generate_dual_scripts():
     news_context = get_trending_news()
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    prompt = f"""You are an expert AI & Tech news content creator for YouTube.
+    prompt = f"""You are a professional AI & Technology news anchor for YouTube.
 Timestamp Seed: {current_time}
-Live News Context: {news_context}
+Context: {news_context}
 
-Generate TWO distinct content packages ("short" and "long") structured into animated slide scenes.
+CRITICAL MANDATE:
+- Topic MUST be strictly about Artificial Intelligence, LLMs, Robotics, Microchips, or Emerging Tech.
+- You MUST generate TWO distinct content packages with DIFFERENT lengths:
+  1. "short": 4-5 detailed slides, total 90-120 words (~40-50 seconds spoken audio).
+  2. "long": 8-10 detailed in-depth slides, total 280-350 words (~90-120 seconds spoken audio).
 
-Return ONLY a JSON object with this exact structure:
+Return ONLY a valid JSON object with this exact structure:
 {{
   "short": {{
     "title": "Short Catchy Headline | AI News #Shorts",
     "description": "Quick breakdown of latest AI news. #Shorts #AINews #Tech",
     "tags": ["AI News", "Shorts", "Tech"],
     "slides": [
-      {{"text": "Headline breakdown sentence 1.", "prompt": "glowing cybernetic AI brain, dark cyan neon 8k", "badge": "BREAKING AI NEWS"}},
-      {{"text": "Key implication or detail sentence 2.", "prompt": "humanoid robot working at holographic terminal", "badge": "TECH BREAKTHROUGH"}},
-      {{"text": "Future impact sentence 3.", "prompt": "quantum computing server room glowing blue data streams", "badge": "INDUSTRY IMPACT"}},
-      {{"text": "Subscribe to FutureTech Pulse for daily AI news!", "prompt": "futuristic neon subscribe button with circuit background", "badge": "SUBSCRIBE NOW"}}
+      {{"text": "Breaking news in artificial intelligence as researchers announce a massive breakthrough in autonomous models.", "prompt": "glowing cybernetic AI brain, dark cyan neon 8k", "badge": "BREAKING AI NEWS"}},
+      {{"text": "This new architecture allows AI systems to process complex reasoning tasks up to ten times faster than previous generations.", "prompt": "humanoid robot working at holographic terminal", "badge": "NEURAL BREAKTHROUGH"}},
+      {{"text": "Major tech leaders report that this innovation will accelerate enterprise automation across software and biotech industries.", "prompt": "quantum computing server room glowing blue data streams", "badge": "INDUSTRY IMPACT"}},
+      {{"text": "As deployment expands globally, experts predict a fundamental shift in how human engineers collaborate with artificial intelligence.", "prompt": "futuristic city skyline at night floating glowing network", "badge": "FUTURE OUTLOOK"}},
+      {{"text": "Subscribe to FutureTech Pulse for daily breaking artificial intelligence updates!", "prompt": "futuristic neon subscribe button circuit background", "badge": "SUBSCRIBE NOW"}}
     ]
   }},
   "long": {{
-    "title": "In-Depth: Major AI Breakthrough Explored | FutureTech Pulse",
-    "description": "Comprehensive deep dive into recent AI breakthroughs.",
-    "tags": ["AI Breakthrough", "Artificial Intelligence", "Tech News"],
+    "title": "In-Depth Analysis: The Next Era of Artificial Intelligence | FutureTech Pulse",
+    "description": "Comprehensive 2-minute deep dive into recent artificial intelligence breakthroughs and industry implications.",
+    "tags": ["AI Breakthrough", "Artificial Intelligence", "Tech News", "FutureTech"],
     "slides": [
-      {{"text": "Welcome to FutureTech Pulse with today's top AI story.", "prompt": "futuristic glowing cybernetic AI brain 8k", "badge": "AI DEEP DIVE"}},
-      {{"text": "Engineers have unveiled a major breakthrough in autonomous systems.", "prompt": "high tech robotics laboratory dark aesthetic", "badge": "AUTONOMOUS AI"}},
-      {{"text": "This technology enables software to self-correct and execute complex code.", "prompt": "floating holographic code matrix glowing cyan", "badge": "SOFTWARE INNOVATION"}},
-      {{"text": "Industry analysts predict this could transform software production globally.", "prompt": "futuristic city skyline with glowing data network", "badge": "GLOBAL IMPACT"}},
-      {{"text": "Subscribe for daily in-depth artificial intelligence coverage!", "prompt": "futuristic neon subscribe banner cyan dark", "badge": "SUBSCRIBE FOR MORE"}}
+      {{"text": "Welcome to FutureTech Pulse. Today we are exploring a milestone development in artificial intelligence.", "prompt": "futuristic glowing cybernetic AI brain 8k", "badge": "AI DEEP DIVE"}},
+      {{"text": "Engineers and computer scientists have officially unveiled a novel neural network architecture built for extreme scalability.", "prompt": "high tech robotics laboratory dark aesthetic", "badge": "NEURAL ARCHITECTURE"}},
+      {{"text": "Unlike traditional transformer models, this new framework reduces computational overhead while dramatically boosting reasoning accuracy.", "prompt": "floating holographic code matrix glowing cyan", "badge": "SOFTWARE INNOVATION"}},
+      {{"text": "In benchmark evaluations, the model demonstrated unprecedented capability in autonomous software development and scientific research.", "prompt": "supercomputer server room glowing neon circuit trails", "badge": "BENCHMARK PERFORMANCE"}},
+      {{"text": "Key industry partners are already integrating this system into cloud infrastructure to power next generation AI agents.", "prompt": "futuristic digital globe with connected data streams", "badge": "ENTERPRISE INTEGRATION"}},
+      {{"text": "However, security researchers emphasize the crucial need for robust alignment safeguards as autonomous capabilities expand.", "prompt": "cybersecurity shield visual glowing neon lock code", "badge": "SAFETY & ALIGNMENT"}},
+      {{"text": "Looking ahead, this breakthrough sets the foundation for highly adaptable AI systems capable of continuous real time learning.", "prompt": "futuristic tech laboratory with glowing hologram displays", "badge": "FUTURE HORIZON"}},
+      {{"text": "Make sure to subscribe to FutureTech Pulse for daily, in-depth coverage of artificial intelligence and emerging technology!", "prompt": "futuristic neon subscribe banner cyan dark", "badge": "SUBSCRIBE FOR MORE"}}
     ]
   }}
 }}"""
@@ -158,15 +168,15 @@ Return ONLY a JSON object with this exact structure:
                         model=model,
                         messages=[{"role": "user", "content": prompt}],
                         response_format={"type": "json_object"},
-                        max_tokens=1000
+                        max_tokens=1500
                     )
-                    raw_text = completion.choices.message.content.strip()
+                    raw_text = completion.choices[0].message.content.strip()
                     content = json.loads(raw_text)
                     if isinstance(content, dict) and "short" in content and "long" in content:
                         print(f"   ✅ Groq ({model}) success!")
                         return content
-                except Exception:
-                    pass
+                except Exception as err:
+                    print(f"   ⚠️ Groq model '{model}' skipped: {err}")
         except Exception as e:
             print(f"   ⚠️ Groq API error: {e}")
 
@@ -203,27 +213,34 @@ Return ONLY a JSON object with this exact structure:
         except Exception as e:
             print(f"   ⚠️ OpenRouter API error: {e}")
 
-    # --- PROVIDER 4: Fail-Safe Built-in Template Engine ---
-    print("   ⚠️ All remote AI providers busy. Using Fail-Safe Template Engine...")
+    # --- PROVIDER 4: Fail-Safe Built-in AI Template Engine ---
+    print("   ⚠️ All remote AI providers busy. Using Fail-Safe AI Template Engine...")
     return {
         "short": {
-            "title": "Breaking AI & Tech News Update | #Shorts",
-            "description": "Latest breaking developments in artificial intelligence and tech.",
-            "tags": ["AI News", "Shorts", "Tech"],
+            "title": "Next-Gen Autonomous AI Models Unveiled | #Shorts",
+            "description": "Quick breakdown of major developments in artificial intelligence and autonomous systems. #Shorts #AINews #Tech",
+            "tags": ["AI News", "Shorts", "Tech", "Artificial Intelligence"],
             "slides": [
-                {"text": "Breaking news in artificial intelligence and autonomous systems.", "prompt": "glowing cybernetic AI brain neon blue 8k", "badge": "BREAKING AI NEWS"},
-                {"text": "Next generation AI models achieve unprecedented performance leaps.", "prompt": "humanoid robot coding at holographic computer terminal", "badge": "TECH BREAKTHROUGH"},
-                {"text": "Subscribe to FutureTech Pulse for daily breaking tech news!", "prompt": "futuristic neon subscribe button circuit background", "badge": "SUBSCRIBE NOW"}
+                {"text": "Major breakthrough in artificial intelligence as researchers announce next-generation autonomous models.", "prompt": "glowing cybernetic AI brain neon blue 8k", "badge": "BREAKING AI NEWS"},
+                {"text": "This new architecture allows neural networks to execute multi-step logic and self-correct software code in real time.", "prompt": "humanoid robot coding at holographic computer terminal", "badge": "NEURAL BREAKTHROUGH"},
+                {"text": "Enterprise tech leaders report that automated agents will streamline complex software development globally.", "prompt": "quantum computing server room glowing blue data streams", "badge": "INDUSTRY IMPACT"},
+                {"text": "As autonomous AI expands across cloud networks, computer scientists emphasize the need for rigorous security benchmarks.", "prompt": "cybersecurity shield glowing neon circuit background", "badge": "SAFETY & CONTROL"},
+                {"text": "Subscribe to FutureTech Pulse for daily breaking artificial intelligence and technology news!", "prompt": "futuristic neon subscribe button circuit background", "badge": "SUBSCRIBE NOW"}
             ]
         },
         "long": {
-            "title": "In-Depth: Major Artificial Intelligence Breakthrough | FutureTech Pulse",
-            "description": "Comprehensive analysis of today's top AI and tech developments.",
-            "tags": ["AI Breakthrough", "Tech News", "FutureTech"],
+            "title": "In-Depth Analysis: How Next-Gen AI Models Are Revolutionizing Tech | FutureTech Pulse",
+            "description": "Comprehensive deep dive into recent artificial intelligence breakthroughs, neural architectures, and enterprise impact.",
+            "tags": ["AI Breakthrough", "Artificial Intelligence", "Tech News", "FutureTech"],
             "slides": [
-                {"text": "Welcome to FutureTech Pulse with today's deep dive into AI developments.", "prompt": "futuristic glowing cybernetic AI brain 8k", "badge": "AI DEEP DIVE"},
-                {"text": "Recent advancements in neural networks are transforming autonomous tools.", "prompt": "high tech robotics laboratory dark aesthetic", "badge": "AUTONOMOUS AI"},
-                {"text": "Subscribe for daily in-depth artificial intelligence coverage!", "prompt": "futuristic neon subscribe banner cyan dark", "badge": "SUBSCRIBE FOR MORE"}
+                {"text": "Welcome to FutureTech Pulse. Today we are conducting an in-depth exploration into the latest milestones in artificial intelligence.", "prompt": "futuristic glowing cybernetic AI brain 8k", "badge": "AI DEEP DIVE"},
+                {"text": "Leading AI research labs have officially demonstrated a new neural network architecture designed for high speed complex reasoning.", "prompt": "high tech robotics laboratory dark aesthetic", "badge": "NEURAL ARCHITECTURE"},
+                {"text": "Unlike standard transformer architectures, this breakthrough dramatically decreases latency while scaling contextual memory capacity.", "prompt": "floating holographic code matrix glowing cyan", "badge": "SOFTWARE INNOVATION"},
+                {"text": "In rigorous benchmark evaluations, the model surpassed existing standards in autonomous software engineering and mathematical problem solving.", "prompt": "supercomputer server room glowing neon circuit trails", "badge": "BENCHMARK PERFORMANCE"},
+                {"text": "Major cloud infrastructure providers are preparing to roll out these advanced models to power enterprise autonomous AI agents globally.", "prompt": "futuristic digital globe with connected data streams", "badge": "ENTERPRISE INTEGRATION"},
+                {"text": "At the same time, safety researchers are introducing novel guardrail frameworks to ensure reliable, policy compliant AI operations.", "prompt": "cybersecurity shield visual glowing neon lock code", "badge": "SAFETY & ALIGNMENT"},
+                {"text": "Industry experts project that adaptive neural models will become the primary operating engine for software development within the decade.", "prompt": "futuristic city skyline at night floating glowing network", "badge": "FUTURE HORIZON"},
+                {"text": "Make sure to subscribe to FutureTech Pulse for daily, comprehensive coverage of artificial intelligence and emerging technology!", "prompt": "futuristic neon subscribe banner cyan dark", "badge": "SUBSCRIBE FOR MORE"}
             ]
         }
     }
@@ -263,6 +280,7 @@ def render_multislide_video(title_text, slides, audio_file, is_short=True, outpu
     voice_audio = AudioFileClip(audio_file)
     total_duration = voice_audio.duration
     slide_dur = total_duration / len(slides)
+    print(f"   Total Audio Duration: {total_duration:.1f}s | Slide Duration: {slide_dur:.1f}s across {len(slides)} slides.")
 
     bg_music_file = get_background_music()
     if bg_music_file:
@@ -310,7 +328,7 @@ def render_multislide_video(title_text, slides, audio_file, is_short=True, outpu
             draw.rectangle([(80, 140), (1000, 230)], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=3)
             draw.text((120, 168), slide_badge[:30], fill=(56, 189, 248))
 
-            # Sleek Lower-Third Caption Card (doesn't block the screen!)
+            # Sleek Lower-Third Caption Card
             draw.rectangle([(80, 1280), (1000, 1680)], fill=(15, 23, 42, 220), outline=(56, 189, 248), width=2)
             
             words = slide_text.split()
