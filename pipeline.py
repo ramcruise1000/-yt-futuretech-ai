@@ -14,7 +14,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
 # ==========================================
-# STEP 1: AI Script Generation (Gemini + Groq Fallback Loop)
+# STEP 1: AI Script Generation (Gemini + Groq Active Models)
 # ==========================================
 def generate_script():
     print("🧠 Step 1: Requesting educational script from AI...")
@@ -52,19 +52,19 @@ Return ONLY a JSON object with this exact structure:
                 except Exception as e:
                     print(f"   ⚠️ Gemini API attempt {attempt} failed: {e}")
                     if attempt < 3:
-                        print("   Pausing 10 seconds before retrying Gemini...")
-                        time.sleep(10)
+                        wait_time = attempt * 15
+                        print(f"   Pausing {wait_time} seconds for server capacity to clear...")
+                        time.sleep(wait_time)
         except Exception as e:
             print(f"   ⚠️ Gemini client initialization error: {e}")
 
-    # --- BACKUP PROVIDER: Groq API with Model Candidates ---
+    # --- BACKUP PROVIDER: Groq API with Active Production Models ---
     if groq_key:
         groq_models = [
-            "llama-3.1-70b-versatile",
-            "llama3-70b-8192",
-            "mixtral-8x7b-32768",
-            "gemma2-9b-it",
-            "llama-3.3-70b-versatile"
+            "llama-3.1-8b-instant",
+            "llama-3.3-70b-specdec",
+            "deepseek-r1-distill-llama-70b",
+            "qwen-2.5-32b"
         ]
         groq_client = Groq(api_key=groq_key)
         for model in groq_models:
