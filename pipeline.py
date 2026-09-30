@@ -53,7 +53,7 @@ def get_font(size):
 def sanitize_text(text):
     if not text:
         return ""
-    # Completely remove "Ed 222", "Ed. #222", "(Ed. #123)" edition tags
+    # Completely remove "Ed 222", "Ed. #222", "(Ed. #123)" edition tags safely without regex group syntax errors
     clean = re.sub(r'\\(?Ed\.?\s*#?\d+\\)?', '', str(text), flags=re.IGNORECASE)
     clean = re.sub(r'Edition\s*#?\d+', '', clean, flags=re.IGNORECASE)
     # Strip non-ASCII characters to avoid PIL latin-1 encoder crash
@@ -211,7 +211,7 @@ Return ONLY a valid JSON object with this exact structure:
         try:
             print("   [Provider 2] Switching to Groq API...")
             groq_client = Groq(api_key=groq_key)
-            groq_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma2-9b-it"]
+            groq_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"]
 
             for model in groq_models:
                 try:
@@ -251,7 +251,7 @@ Return ONLY a valid JSON object with this exact structure:
         except Exception as e:
             print(f"   ⚠️ OpenRouter API error: {e}")
 
-    # --- PROVIDER 4: Procedural Fallback Engine (No "Ed 222" tags) ---
+    # --- PROVIDER 4: Procedural Fallback Engine ---
     print("   ⚠️ All remote AI providers busy. Generating Procedural Triple Script Package...")
     
     return {
@@ -298,7 +298,7 @@ Return ONLY a valid JSON object with this exact structure:
                 {"text": "After executing an action, the system evaluates environmental feedback to assess task completion accuracy.", "prompt": "real time feedback control loop glowing green indicator lines", "badge": "EVALUATION LOOP"},
                 {"text": "If errors occur, self-reflection mechanisms prompt the model to modify its approach and attempt self-correction.", "prompt": "self correcting neural network node rerouting data streams", "badge": "SELF CORRECTION"},
                 {"text": "This continuous feedback loop allows autonomous agents to complete complex software engineering tasks independently.", "prompt": "autonomous AI software agent working on holographic dashboard", "badge": "AUTONOMOUS WORKFLOWS"},
-                {"text": "Understanding these architectural foundations gives you a crucial strategic edge in modern AI development.", "prompt": "futuristic software engineer collaborating with AI hologram", "badge": "STRATEGIC IMPACT"},
+                {"text": "Understanding these architectural foundations gives you a crucial strategic edge in modern AI development.", "prompt": "futuristic software developer collaborating with AI hologram", "badge": "STRATEGIC IMPACT"},
                 {"text": "Subscribe to FutureTech Pulse for daily 2-minute AI learning slideshows and technology masterclasses!", "prompt": "futuristic neon academy subscribe button glowing circuit", "badge": "SUBSCRIBE FOR LESSONS"}
             ]
         }
@@ -405,7 +405,7 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
         draw.rectangle([(50, 140), (1030, 260)], fill=(244, 63, 94, 245), outline=(255, 255, 255), width=4)
         draw.text((90, 172), f"HOT: {clean_badge}", fill=(255, 255, 255), font=badge_font)
 
-        # Translucent Glass Box (fill=130 allows AI backdrop image to shine through)
+        # Translucent Glass Box
         draw.rectangle([(50, 1100), (1030, 1740)], fill=(10, 15, 30, 140), outline=border_color, width=6)
         
         words = clean_title.split()
@@ -421,7 +421,6 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
         y_off = 1140
         for idx, line in enumerate(lines[:6]):
             safe_line = sanitize_text(line)
-            # Black outline for maximum contrast
             for dx, dy in [(-3,-3), (3,-3), (-3,3), (3,3), (0,4), (0,-4), (4,0), (-4,0)]:
                 draw.text((90+dx, y_off+dy), safe_line, fill=(0, 0, 0), font=title_font)
             text_color = (250, 204, 21) if idx % 2 == 0 else (56, 189, 248)
@@ -440,7 +439,7 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
         draw.rectangle([(720, 50), (1220, 150)], fill=(147, 51, 234, 245), outline=(255, 255, 255), width=3)
         draw.text((750, 75), "NEW 2026 LESSON", fill=(255, 255, 255), font=badge_font)
 
-        # Translucent Glass Box (fill=130)
+        # Translucent Glass Box
         draw.rectangle([(60, 180), (1220, 660)], fill=(10, 15, 30, 130), outline=border_color, width=6)
 
         words = clean_title.split()
@@ -456,7 +455,6 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
         y_off = 210
         for idx, line in enumerate(lines[:5]):
             safe_line = sanitize_text(line)
-            # Black outline
             for dx, dy in [(-3,-3), (3,-3), (-3,3), (3,3), (0,4), (0,-4), (4,0), (-4,0)]:
                 draw.text((90+dx, y_off+dy), safe_line, fill=(0, 0, 0), font=title_font)
             text_color = (250, 204, 21) if idx % 2 == 0 else (255, 255, 255)
