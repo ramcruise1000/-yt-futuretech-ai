@@ -15,6 +15,7 @@ from datetime import datetime
 import PIL.Image
 import PIL.ImageDraw
 import PIL.ImageFont
+import PIL.ImageFilter
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 if not hasattr(PIL.Image, 'ANTIALIAS'):
     PIL.Image.ANTIALIAS = getattr(PIL.Image, 'LANCZOS', getattr(PIL.Image, 'Resampling', PIL.Image).LANCZOS)
@@ -40,10 +41,10 @@ def sanitize_text(text):
     return re.sub(r'[^\x00-\x7F]+', '', text).strip()
 
 # ==========================================
-# STEP 0: Strictly AI & Tech News Ingestion with Randomization
+# STEP 0: Strictly AI & Tech News & Learning Topics Ingestion
 # ==========================================
-def get_trending_news():
-    print("📰 Step 0: Scraping STRICT AI & Tech news via RSS...")
+def get_trending_news_and_learning_topic():
+    print("📰 Step 0: Scraping AI news and selecting AI Learning topic...")
     rss_feeds = [
         "https://techcrunch.com/category/artificial-intelligence/feed/",
         "https://www.mittechnologyreview.com/feed/",
@@ -70,74 +71,92 @@ def get_trending_news():
         except Exception as e:
             print(f"   ⚠️ RSS Feed error ({url}): {e}")
 
-    if news_items:
-        random.shuffle(news_items)
-        selected_news = news_items
-        print(f"   ✅ Selected AI & Tech Context: {selected_news[:90]}...")
-        return selected_news
-    
-    dynamic_fallbacks = [
-        "Headline: OpenAI Advances Autonomous AI Coding Agents | Summary: Next-generation neural models automate end-to-end software engineering workflows with self-correcting reasoning.",
-        "Headline: NVIDIA Unveils Next-Gen Blackwell Supercomputing Architecture | Summary: Massive GPU clusters accelerate multi-trillion parameter LLM training and real-time world simulation.",
-        "Headline: Humanoid AI Robotics Breakthrough in Autonomous Industrial Dexterity | Summary: Neural network control enables vision-guided precision manipulation in manufacturing.",
-        "Headline: Quantum AI Synergy Achieves Million-Qubit Benchmark | Summary: Hybrid quantum-classical algorithms solve complex protein folding and materials discovery in seconds."
+    selected_news = random.choice(news_items) if news_items else "Headline: OpenAI Advances Autonomous AI Coding Agents | Summary: Next-generation neural models automate end-to-end software engineering workflows."
+
+    learning_topics = [
+        "How Transformer Neural Networks Work (Self-Attention & Tokens)",
+        "Understanding Agentic AI & Autonomous Decision Loops",
+        "Large Language Models (LLMs) Explained Simply: Training to Inference",
+        "Retrieval-Augmented Generation (RAG) Architecture Masterclass",
+        "Diffusion Models & Generative AI Image Synthesis Step-by-Step",
+        "Neural Network Backpropagation & Weights Optimization Simplified",
+        "AI Vector Databases & Embeddings Concept Guide"
     ]
-    selected_fallback = random.choice(dynamic_fallbacks)
-    print(f"   ✅ Selected Fallback AI Topic: {selected_fallback[:90]}...")
-    return selected_fallback
+    selected_learning = random.choice(learning_topics)
+
+    print(f"   ✅ Selected News Context: {selected_news[:80]}...")
+    print(f"   🎓 Selected AI Learning Topic: {selected_learning}")
+    return selected_news, selected_learning
 
 # ==========================================
-# STEP 1: Multi-Provider AI Engine
+# STEP 1: Multi-Provider AI Engine (3 Packages: Short, Long News, AI Learning)
 # ==========================================
-def generate_dual_scripts():
-    print("🧠 Step 1: Generating Animated Multi-Slide AI & Tech News Package...")
+def generate_triple_scripts():
+    print("🧠 Step 1: Generating Short, Long News, and 2-3 Min AI Learning Video Packages...")
     gemini_key = os.environ.get("GEMINI_API_KEY")
     groq_key = os.environ.get("GROQ_API_KEY")
     openrouter_key = os.environ.get("OPENROUTER_API_KEY")
-    news_context = get_trending_news()
+    news_context, learning_topic = get_trending_news_and_learning_topic()
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
 
-    prompt = f"""You are an elite YouTube AI content creator specializing in viral, high-CTR AI & Tech news.
+    prompt = f"""You are an elite YouTube AI content creator specializing in viral AI news and engaging educational AI lessons.
 Randomization Seed: {current_time}
-Context: {news_context}
+News Context: {news_context}
+Learning Topic: {learning_topic}
 
 CRITICAL DIRECTIVES:
-1. Every run MUST produce UNIQUE, fresh content based on the news context.
-2. Titles MUST be viral, high-CTR hooks (e.g. "INSANE AI Breakthrough", "JUST UNVEILED", "THIS CHANGES EVERYTHING").
-3. Prompts for thumbnails and slides MUST describe vivid, dynamic visual scenes tailored specifically to the story topic.
-4. Content structure:
-   - "short": 5 distinct slide scenes, total 90-120 words (~45 seconds spoken audio).
-   - "long": 8-10 distinct slide scenes, total 280-350 words (~1.5-2 minutes spoken audio).
+Generate THREE distinct video content packages:
+1. "short": Vertical 9:16 Short (5 slides, ~45s spoken audio, total 90-120 words).
+2. "long": Widescreen 16:9 News Video (8 slides, ~1.5-2 mins spoken audio, total 250-300 words).
+3. "learning": Widescreen 16:9 Educational AI Slideshow (10-12 slides, ~2.5-3 mins spoken audio, total 350-450 words explaining the concept step-by-step).
 
 Return ONLY a valid JSON object with this exact structure:
 {{
   "short": {{
-    "title": "Viral Headline | AI News #Shorts",
+    "title": "INSANE AI Breakthrough Unveiled! | #Shorts",
     "description": "Quick breakdown of latest AI news. #Shorts #AINews #Tech",
-    "thumb_prompt": "Specific high impact 8k visual prompt matching this news story",
+    "thumb_prompt": "cybernetic humanoid robot head glowing cyan neon dark technical background 8k",
     "tags": ["AI News", "Shorts", "Tech", "Artificial Intelligence"],
     "slides": [
-      {{"text": "Slide 1 sentence...", "prompt": "specific topic visual prompt 1", "badge": "BREAKING AI"}},
-      {{"text": "Slide 2 sentence...", "prompt": "specific topic visual prompt 2", "badge": "NEURAL AGENTS"}},
-      {{"text": "Slide 3 sentence...", "prompt": "specific topic visual prompt 3", "badge": "INDUSTRY IMPACT"}},
-      {{"text": "Slide 4 sentence...", "prompt": "specific topic visual prompt 4", "badge": "FUTURE OUTLOOK"}},
+      {{"text": "Slide 1 sentence...", "prompt": "visual prompt 1", "badge": "BREAKING AI"}},
+      {{"text": "Slide 2 sentence...", "prompt": "visual prompt 2", "badge": "NEURAL AGENTS"}},
+      {{"text": "Slide 3 sentence...", "prompt": "visual prompt 3", "badge": "INDUSTRY IMPACT"}},
+      {{"text": "Slide 4 sentence...", "prompt": "visual prompt 4", "badge": "FUTURE OUTLOOK"}},
       {{"text": "Subscribe to FutureTech Pulse right now for daily breaking AI news!", "prompt": "futuristic neon subscribe button circuit background", "badge": "SUBSCRIBE NOW"}}
     ]
   }},
   "long": {{
-    "title": "Viral High-CTR Widescreen Title | FutureTech Pulse",
-    "description": "Comprehensive deep dive into recent artificial intelligence breakthroughs.",
-    "thumb_prompt": "Specific high impact 8k widescreen visual prompt matching this deep dive",
+    "title": "MUST SEE: Next-Gen AI Architecture Shocks Tech Industry | FutureTech Pulse",
+    "description": "Comprehensive deep dive into recent artificial intelligence developments.",
+    "thumb_prompt": "supercomputer matrix glowing blue circuits cybernetic AI core 8k render",
     "tags": ["AI Breakthrough", "Artificial Intelligence", "Tech News", "FutureTech"],
     "slides": [
-      {{"text": "Slide 1 sentence...", "prompt": "specific topic visual prompt 1", "badge": "AI DEEP DIVE"}},
-      {{"text": "Slide 2 sentence...", "prompt": "specific topic visual prompt 2", "badge": "NEURAL TECH"}},
-      {{"text": "Slide 3 sentence...", "prompt": "specific topic visual prompt 3", "badge": "INNOVATION"}},
-      {{"text": "Slide 4 sentence...", "prompt": "specific topic visual prompt 4", "badge": "BENCHMARKS"}},
-      {{"text": "Slide 5 sentence...", "prompt": "specific topic visual prompt 5", "badge": "INTEGRATION"}},
-      {{"text": "Slide 6 sentence...", "prompt": "specific topic visual prompt 6", "badge": "ALIGNMENT"}},
-      {{"text": "Slide 7 sentence...", "prompt": "specific topic visual prompt 7", "badge": "FUTURE HORIZON"}},
+      {{"text": "Slide 1 sentence...", "prompt": "visual prompt 1", "badge": "AI DEEP DIVE"}},
+      {{"text": "Slide 2 sentence...", "prompt": "visual prompt 2", "badge": "NEURAL TECH"}},
+      {{"text": "Slide 3 sentence...", "prompt": "visual prompt 3", "badge": "INNOVATION"}},
+      {{"text": "Slide 4 sentence...", "prompt": "visual prompt 4", "badge": "BENCHMARKS"}},
+      {{"text": "Slide 5 sentence...", "prompt": "visual prompt 5", "badge": "INTEGRATION"}},
+      {{"text": "Slide 6 sentence...", "prompt": "visual prompt 6", "badge": "ALIGNMENT"}},
+      {{"text": "Slide 7 sentence...", "prompt": "visual prompt 7", "badge": "FUTURE HORIZON"}},
       {{"text": "Make sure to subscribe to FutureTech Pulse for daily comprehensive AI coverage!", "prompt": "futuristic neon subscribe banner cyan dark", "badge": "SUBSCRIBE FOR MORE"}}
+    ]
+  }},
+  "learning": {{
+    "title": "AI EXPLAINED: {learning_topic} (2-Minute Masterclass) | FutureTech Pulse",
+    "description": "Learn {learning_topic} step-by-step in this 2-3 minute educational AI slideshow lesson.",
+    "thumb_prompt": "glowing holographic neural network diagram learning class technical 8k render",
+    "tags": ["AI Learning", "AI Explained", "Machine Learning", "Tech Tutorial", "FutureTech"],
+    "slides": [
+      {{"text": "Welcome to FutureTech AI Academy. Today we are breaking down {learning_topic} step-by-step.", "prompt": "futuristic holographic academy classroom glowing neural diagram 8k", "badge": "LESSON OVERVIEW"}},
+      {{"text": "To understand this concept, we first look at how traditional data processing differs from modern neural representations.", "prompt": "data flow matrix comparison traditional vs neural networks cyan", "badge": "CORE CONCEPT"}},
+      {{"text": "At the core of this system lies an architecture designed to transform raw input tokens into mathematical vector embeddings.", "prompt": "vector embeddings space 3d spatial data nodes glowing blue", "badge": "VECTOR EMBEDDINGS"}},
+      {{"text": "These mathematical vectors allow the neural model to capture contextual relationships and semantic meaning instantaneously.", "prompt": "synaptic neural connections firing glowing nodes network", "badge": "CONTEXTUAL LOGIC"}},
+      {{"text": "Next, multi-head attention mechanisms weigh the importance of every token relative to every other token in the sequence.", "prompt": "multi head attention mechanism visualization glowing beams", "badge": "ATTENTION LAYERS"}},
+      {{"text": "This parallel computation allows the model to scale efficiently across billions of parameters without losing context.", "prompt": "supercomputer parallel processing GPU cluster neon trails", "badge": "PARALLEL SCALING"}},
+      {{"text": "During the training phase, backpropagation continually adjusts synaptic weights to minimize loss and optimize predictions.", "prompt": "gradient descent mathematical surface optimization 3d graph", "badge": "WEIGHT OPTIMIZATION"}},
+      {{"text": "In practical applications, this enables autonomous AI agents to reason, plan, and execute complex workflows seamlessly.", "prompt": "autonomous AI software agent working on holographic dashboard", "badge": "REAL WORLD AGENTS"}},
+      {{"text": "Understanding these core principles gives you a massive advantage as generative AI transforms software engineering globally.", "prompt": "futuristic software developer collaborating with AI hologram", "badge": "STRATEGIC IMPACT"}},
+      {{"text": "Subscribe to FutureTech Pulse for daily 2-minute AI learning lessons and breaking technology masterclasses!", "prompt": "futuristic neon academy subscribe button glowing circuit", "badge": "SUBSCRIBE FOR LESSONS"}}
     ]
   }}
 }}"""
@@ -156,14 +175,14 @@ Return ONLY a valid JSON object with this exact structure:
                         config=types.GenerateContentConfig(response_mime_type="application/json")
                     )
                     content = json.loads(response.text.strip())
-                    if isinstance(content, dict) and "short" in content and "long" in content:
+                    if isinstance(content, dict) and "short" in content and "long" in content and "learning" in content:
                         print(f"   ✅ Gemini ({g_model}) success!")
                         return content
                 except Exception as e:
                     print(f"   ⚠️ Gemini model '{g_model}' note: {e}")
                     time.sleep(2)
         except Exception as e:
-            print(f"   ⚠️ Gemini client error: {e}")
+            print(f"   ⚠️️ Gemini client error: {e}")
 
     # --- PROVIDER 2: Groq API ---
     if groq_key:
@@ -180,11 +199,11 @@ Return ONLY a valid JSON object with this exact structure:
                         model=model,
                         messages=[{"role": "user", "content": prompt}],
                         response_format={"type": "json_object"},
-                        max_tokens=1500
+                        max_tokens=2200
                     )
                     raw_text = completion.choices.message.content.strip()
                     content = json.loads(raw_text)
-                    if isinstance(content, dict) and "short" in content and "long" in content:
+                    if isinstance(content, dict) and "short" in content and "long" in content and "learning" in content:
                         print(f"   ✅ Groq ({model}) success!")
                         return content
                 except Exception as err:
@@ -203,7 +222,7 @@ Return ONLY a valid JSON object with this exact structure:
                     res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": model, "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_object"}}, timeout=20)
                     if res.status_code == 200:
                         content = json.loads(res.json()["choices"]["message"]["content"])
-                        if isinstance(content, dict) and "short" in content and "long" in content:
+                        if isinstance(content, dict) and "short" in content and "long" in content and "learning" in content:
                             print(f"   ✅ OpenRouter ({model}) success!")
                             return content
                 except Exception:
@@ -211,8 +230,8 @@ Return ONLY a valid JSON object with this exact structure:
         except Exception as e:
             print(f"   ⚠️ OpenRouter API error: {e}")
 
-    # --- PROVIDER 4: Dynamic Procedural Template Generator ---
-    print("   ⚠️ All remote AI providers busy. Generating Dynamic Procedural Script Package...")
+    # --- PROVIDER 4: Procedural Fallback Engine ---
+    print("   ⚠️ All remote AI providers busy. Generating Procedural Triple Script Package...")
     run_id = int(time.time()) % 1000
     
     return {
@@ -244,6 +263,24 @@ Return ONLY a valid JSON object with this exact structure:
                 {"text": "Industry experts project that these neural models will become the primary operating engine for tech within the decade.", "prompt": "futuristic city skyline at night floating glowing network", "badge": "FUTURE HORIZON"},
                 {"text": "Make sure to subscribe to FutureTech Pulse for daily comprehensive coverage of artificial intelligence!", "prompt": "futuristic neon subscribe banner cyan dark", "badge": "SUBSCRIBE FOR MORE"}
             ]
+        },
+        "learning": {
+            "title": f"AI EXPLAINED: How Autonomous Agentic Neural Loops Work | FutureTech Pulse (Ed. #{run_id})",
+            "description": f"Master the mechanics of Agentic AI and Neural Decision Loops in this 2-3 minute educational slideshow lesson.",
+            "thumb_prompt": "glowing holographic AI agent brain learning diagram masterclass cyan neon 8k",
+            "tags": ["AI Learning", "AI Explained", "Machine Learning", "Tech Tutorial", "FutureTech"],
+            "slides": [
+                {"text": "Welcome to FutureTech AI Academy. Today we are exploring the architecture behind autonomous agentic neural loops.", "prompt": "futuristic holographic academy classroom glowing neural diagram 8k", "badge": "LESSON OVERVIEW"},
+                {"text": "Unlike static models that answer prompts passively, agentic systems operate in continuous perception and action cycles.", "prompt": "continuous decision loop flowchart glowing neon cyan data streams", "badge": "AGENTIC LOOPS"},
+                {"text": "The cycle begins when an incoming goal is decomposed into discrete, executable sub-tasks by a planning model.", "prompt": "sub task decomposition tree diagram glowing nodes network", "badge": "GOAL PLANNING"},
+                {"text": "Next, the agent queries memory stores, retrieving relevant context through vector semantic embeddings.", "prompt": "vector embeddings space 3d spatial data nodes glowing blue", "badge": "VECTOR MEMORY"},
+                {"text": "Tool calling frameworks then allow the AI to interact directly with software environments and APIs.", "prompt": "digital API interaction nodes connecting software applications", "badge": "TOOL INTEGRATION"},
+                {"text": "After executing an action, the system evaluates environmental feedback to assess task completion accuracy.", "prompt": "real time feedback control loop glowing green indicator lines", "badge": "EVALUATION LOOP"},
+                {"text": "If errors occur, self-reflection mechanisms prompt the model to modify its approach and attempt self-correction.", "prompt": "self correcting neural network node rerouting data streams", "badge": "SELF CORRECTION"},
+                {"text": "This continuous feedback loop allows autonomous agents to complete complex software engineering tasks independently.", "prompt": "autonomous AI software agent working on holographic dashboard", "badge": "AUTONOMOUS WORKFLOWS"},
+                {"text": "Understanding these architectural foundations gives you a crucial strategic edge in modern AI development.", "prompt": "futuristic software engineer collaborating with AI hologram", "badge": "STRATEGIC IMPACT"},
+                {"text": "Subscribe to FutureTech Pulse for daily 2-minute AI learning slideshows and technology masterclasses!", "prompt": "futuristic neon academy subscribe button glowing circuit", "badge": "SUBSCRIBE FOR LESSONS"}
+            ]
         }
     }
 
@@ -272,80 +309,128 @@ def get_background_music(output_file="bg_music.mp3"):
     return None
 
 # ==========================================
-# STEP 3: High-CTR Custom Dynamic Thumbnail Generator
+# STEP 3: High-CTR Catchy Custom Thumbnail Generator
 # ==========================================
 def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, output_file="thumbnail.png"):
     width, height = (1080, 1920) if is_short else (1280, 720)
-    print(f"🎨 Generating Unique High-CTR Thumbnail ({width}x{height}) -> {output_file}...")
+    print(f"🎨 Generating High-CTR Catchy Thumbnail ({width}x{height}) -> {output_file}...")
     
     clean_visual = sanitize_text(visual_prompt) if visual_prompt else "futuristic AI brain cybernetic neon dark 8k"
     seed = random.randint(10000, 999999)
-    encoded_prompt = urllib.parse.quote(f"{clean_visual}, high contrast dark cyber aesthetic 8k quality render")
+    encoded_prompt = urllib.parse.quote(f"{clean_visual}, high contrast vibrant neon cyberpunk cinematic lighting 8k quality render")
     img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
     
-    try:
-        res = requests.get(img_url, timeout=12)
-        if res.status_code == 200:
-            with open("thumb_bg.png", "wb") as f:
-                f.write(res.content)
-            base_img = PIL.Image.open("thumb_bg.png").convert("RGBA")
-        else:
-            base_img = PIL.Image.new("RGBA", (width, height), (15, 23, 42, 255))
-    except Exception:
-        base_img = PIL.Image.new("RGBA", (width, height), (15, 23, 42, 255))
+    # Try fetching AI visual backdrop with retries
+    base_img = None
+    for attempt in range(1, 3):
+        try:
+            res = requests.get(img_url, timeout=10)
+            if res.status_code == 200:
+                with open("thumb_bg_temp.png", "wb") as f:
+                    f.write(res.content)
+                base_img = PIL.Image.open("thumb_bg_temp.png").convert("RGBA").resize((width, height))
+                break
+        except Exception:
+            time.sleep(1)
 
+    # Fallback to Procedural High-Contrast Cyber Grid Background if remote API fails
+    if base_img is None:
+        base_img = PIL.Image.new("RGBA", (width, height), (15, 23, 42, 255))
+        draw_fallback = PIL.ImageDraw.Draw(base_img)
+        # Draw cyber grid lines
+        grid_step = 60
+        for x in range(0, width, grid_step):
+            draw_fallback.line([(x, 0), (x, height)], fill=(30, 58, 138, 120), width=1)
+        for y in range(0, height, grid_step):
+            draw_fallback.line([(0, y), (width, y)], fill=(30, 58, 138, 120), width=1)
+
+    # Apply Dark Gradient Overlay for maximum title readability
+    gradient = PIL.Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    g_draw = PIL.ImageDraw.Draw(gradient)
+    if is_short:
+        # Dark top and bottom overlays
+        g_draw.rectangle([(0, 0), (width, 350)], fill=(15, 23, 42, 210))
+        g_draw.rectangle([(0, 1100), (width, height)], fill=(15, 23, 42, 230))
+    else:
+        # Widescreen left and top dark overlay
+        g_draw.rectangle([(0, 0), (width, 200)], fill=(15, 23, 42, 220))
+        g_draw.rectangle([(0, 180), (width, height)], fill=(15, 23, 42, 200))
+
+    base_img = PIL.Image.alpha_composite(base_img, gradient)
     draw = PIL.ImageDraw.Draw(base_img)
-    
-    # Outer Neon Border
-    draw.rectangle([(20, 20), (width-20, height-20)], outline=(56, 189, 248), width=6)
-    
+
+    # Outer Neon Glowing Frame
+    border_color = (250, 204, 21) if "LEARN" in badge_text.upper() or "EXPLAINED" in title_text.upper() else (56, 189, 248)
+    draw.rectangle([(16, 16), (width-16, height-16)], outline=border_color, width=8)
+
     clean_badge = sanitize_text(badge_text).upper()
     clean_title = sanitize_text(title_text)
 
     if is_short:
-        # Vertical 9:16 Thumbnail
-        draw.rectangle([(60, 160), (1020, 280)], fill=(244, 63, 94, 240))
-        draw.text((100, 200), clean_badge, fill=(255, 255, 255))
+        # Vertical 9:16 Thumbnail Design
+        # 1. Top High-CTR Badge Sticker
+        draw.rectangle([(50, 140), (1030, 260)], fill=(244, 63, 94, 245), outline=(255, 255, 255), width=3)
+        draw.text((90, 175), f"🔥 {clean_badge}", fill=(255, 255, 255))
+
+        # 2. Lower Main Title Box with High-Contrast Yellow/Cyan Text
+        draw.rectangle([(50, 1150), (1030, 1750)], fill=(15, 23, 42, 240), outline=border_color, width=5)
         
-        draw.rectangle([(60, 1200), (1020, 1680)], fill=(15, 23, 42, 235), outline=(250, 204, 21), width=4)
         words = clean_title.split()
         lines, current_line = [], []
         for word in words:
             current_line.append(word)
-            if len(" ".join(current_line)) > 20:
+            if len(" ".join(current_line)) > 18:
                 lines.append(" ".join(current_line[:-1]))
                 current_line = [word]
         if current_line:
             lines.append(" ".join(current_line))
-            
-        y_off = 1240
-        for line in lines[:5]:
-            draw.text((90, y_off), line, fill=(250, 204, 21)) # High-CTR Yellow Text
-            y_off += 65
-    else:
-        # Widescreen 16:9 Thumbnail
-        draw.rectangle([(80, 80), (650, 160)], fill=(244, 63, 94, 240))
-        draw.text((110, 105), f"HOT: {clean_badge}", fill=(255, 255, 255))
-        
-        draw.rectangle([(80, 220), (1200, 580)], fill=(15, 23, 42, 230), outline=(56, 189, 248), width=4)
-        words = clean_title.split()
-        lines, current_line = [], []
-        for word in words:
-            current_line.append(word)
-            if len(" ".join(current_line)) > 32:
-                lines.append(" ".join(current_line[:-1]))
-                current_line = [word]
-        if current_line:
-            lines.append(" ".join(current_line))
-            
-        y_off = 250
-        for line in lines[:4]:
-            draw.text((110, y_off), line, fill=(250, 204, 21)) # High-CTR Yellow Text
+
+        y_off = 1190
+        for idx, line in enumerate(lines[:6]):
+            # Draw shadow for depth
+            draw.text((93, y_off+3), line, fill=(0, 0, 0))
+            text_color = (250, 204, 21) if idx % 2 == 0 else (56, 189, 248)
+            draw.text((90, y_off), line, fill=text_color)
             y_off += 70
+
+        # Bottom Call to Action Sticker
+        draw.rectangle([(50, 1770), (1030, 1860)], fill=(16, 185, 129, 245))
+        draw.text((140, 1795), "► WATCH NOW | 100% EXPLAINED", fill=(255, 255, 255))
+
+    else:
+        # Widescreen 16:9 Thumbnail Design
+        # 1. Top Left Badge Sticker
+        badge_bg = (244, 63, 94, 245) if "HOT" in clean_badge or "BREAKTHROUGH" in clean_badge else (147, 51, 234, 245)
+        draw.rectangle([(60, 60), (700, 150)], fill=badge_bg, outline=(255, 255, 255), width=3)
+        draw.text((90, 85), f"⚡ {clean_badge}", fill=(255, 255, 255))
+
+        # 2. Large Main Headline Box
+        draw.rectangle([(60, 180), (1220, 620)], fill=(15, 23, 42, 235), outline=border_color, width=5)
+
+        words = clean_title.split()
+        lines, current_line = [], []
+        for word in words:
+            current_line.append(word)
+            if len(" ".join(current_line)) > 28:
+                lines.append(" ".join(current_line[:-1]))
+                current_line = [word]
+        if current_line:
+            lines.append(" ".join(current_line))
+
+        y_off = 210
+        for idx, line in enumerate(lines[:5]):
+            draw.text((94, y_off+4), line, fill=(0, 0, 0)) # Drop shadow
+            text_color = (250, 204, 21) if idx % 2 == 0 else (255, 255, 255)
+            draw.text((90, y_off), line, fill=text_color)
+            y_off += 75
+
+        # Bottom Right Floating Sticker
+        draw.rectangle([(750, 60), (1220, 150)], fill=(16, 185, 129, 245), outline=(255, 255, 255), width=2)
+        draw.text((780, 85), "NEW 2026 LESSON", fill=(255, 255, 255))
 
     base_img = base_img.convert("RGB")
     base_img.save(output_file)
-    print(f"   ✅ Unique Thumbnail created: {output_file}")
+    print(f"   ✅ High-CTR Catchy Thumbnail created: {output_file}")
     return output_file
 
 # ==========================================
@@ -353,8 +438,8 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
 # ==========================================
 def render_multislide_video(title_text, slides, is_short=True, output_file="video.mp4"):
     width, height = (1080, 1920) if is_short else (1920, 1080)
-    prefix = "short" if is_short else "long"
-    print(f"🎬 Rendering Synchronized Multi-Slide Video ({width}x{height}) with {len(slides)} scenes...")
+    prefix = os.path.basename(output_file).replace(".mp4", "")
+    print(f"🎬 Rendering Synchronized Multi-Slide Video ({width}x{height}) with {len(slides)} scenes -> {output_file}...")
 
     bg_music_file = get_background_music()
     slide_clips = []
@@ -369,12 +454,12 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
         asyncio.run(synthesize_slide_audio(slide_text, audio_path))
         
         slide_audio = AudioFileClip(audio_path)
-        slide_dur = max(slide_audio.duration, 2.0)
-        print(f"   Slide {idx+1}/{len(slides)}: Spoken Duration = {slide_dur:.2f}s | Badge = '{slide_badge}'")
+        slide_dur = max(slide_audio.duration, 2.2)
+        print(f"   Slide {idx+1}/{len(slides)}: Duration = {slide_dur:.2f}s | Badge = '{slide_badge}'")
 
         # 2. Fetch unique background image for this slide with cache-busting seed
         seed = random.randint(10000, 999999)
-        encoded_prompt = urllib.parse.quote(f"{slide_prompt}, dark cyber aesthetic 8k high quality")
+        encoded_prompt = urllib.parse.quote(f"{slide_prompt}, dark cyber aesthetic 8k high quality render")
         img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
         img_path = f"slide_{prefix}_{idx}.png"
 
@@ -502,6 +587,10 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
     client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
     refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN")
     
+    if not all([client_id, client_secret, refresh_token]):
+        print("⚠️ YouTube OAuth credentials not fully set in environment. Skipping live upload step.")
+        return None
+
     creds = Credentials(
         token=None,
         refresh_token=refresh_token,
@@ -514,7 +603,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
     youtube = build("youtube", "v3", credentials=creds)
     
     # Standard AI Disclosure in description for YouTube Policy Compliance
-    full_description = f"{sanitize_text(description)[:4500]}\n\n🤖 AI CONTENT DISCLAIMER: This video features AI-synthesized narration, script analysis, and visual graphics generated for automated tech news reporting."
+    full_description = f"{sanitize_text(description)[:4500]}\n\n🤖 AI CONTENT DISCLAIMER: This video features AI-synthesized narration, script analysis, and visual graphics generated for automated tech news reporting and education."
 
     body = {
         "snippet": {
@@ -562,14 +651,14 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
             print(f"⚠️ YouTube API Error ({e.resp.status}): {e}")
         return None
     except Exception as e:
-        print(f"⚠️ Upload Exception: {e}")
+        print(f"⚠️️ Upload Exception: {e}")
         return None
 
 # ==========================================
 # MAIN EXECUTION ROUTINE
 # ==========================================
 if __name__ == "__main__":
-    pkg = generate_dual_scripts()
+    pkg = generate_triple_scripts()
     
     # 1. Render & Upload Short Video (9:16 Vertical)
     short_data = pkg["short"]
@@ -591,7 +680,7 @@ if __name__ == "__main__":
     )
     upload_to_youtube(short_file, short_data["title"], short_data["description"], short_data["tags"], thumbnail_file=thumb_short)
     
-    # 2. Render & Upload Long Video (16:9 Widescreen)
+    # 2. Render & Upload Long News Video (16:9 Widescreen)
     long_data = pkg["long"]
     long_slides = long_data.get("slides", [])
     
@@ -610,3 +699,23 @@ if __name__ == "__main__":
         output_file="long_video.mp4"
     )
     upload_to_youtube(long_file, long_data["title"], long_data["description"], long_data["tags"], thumbnail_file=thumb_long)
+
+    # 3. Render & Upload AI Learning Video (16:9 Widescreen, 2-3 Mins Slideshow)
+    learning_data = pkg["learning"]
+    learning_slides = learning_data.get("slides", [])
+    
+    thumb_learning = generate_thumbnail(
+        learning_data["title"], 
+        "AI LESSON EXPLAINED", 
+        learning_data.get("thumb_prompt", "glowing holographic AI neural diagram classroom masterclass"), 
+        is_short=False, 
+        output_file="thumb_learning.png"
+    )
+    
+    learning_file = render_multislide_video(
+        learning_data["title"], 
+        learning_slides, 
+        is_short=False, 
+        output_file="learning_video.mp4"
+    )
+    upload_to_youtube(learning_file, learning_data["title"], learning_data["description"], learning_data["tags"], thumbnail_file=thumb_learning)
