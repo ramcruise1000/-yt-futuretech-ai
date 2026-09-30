@@ -210,7 +210,8 @@ Return ONLY a valid JSON object with this exact structure:
         try:
             print("   [Provider 2] Switching to Groq API...")
             groq_client = Groq(api_key=groq_key)
-            groq_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama3-70b-8192", "llama3-8b-8192"]
+            # Only active supported models on Groq
+            groq_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 
             for model in groq_models:
                 try:
@@ -673,7 +674,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
                 youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_file)).execute()
                 print("   ✅ Custom thumbnail published successfully!")
             except Exception as e:
-                print(f"   ⚠️ Could not set thumbnail ({e}). Ensure YouTube channel is phone-verified for custom thumbnails.")
+                print(f"   ⚠️️ Could not set thumbnail ({e}). Ensure YouTube channel is phone-verified for custom thumbnails.")
 
         return video_id
 
