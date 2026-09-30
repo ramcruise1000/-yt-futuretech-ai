@@ -34,11 +34,13 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.errors import HttpError
 
-# Helper function to sanitize text for PIL font rendering
+# Helper function to sanitize text strictly for PIL font rendering (ASCII only, no emojis)
 def sanitize_text(text):
     if not text:
         return ""
-    return re.sub(r'[^\x00-\x7F]+', '', text).strip()
+    # Strip non-ASCII characters to avoid PIL latin-1 encoder crash with emojis
+    clean = re.sub(r'[^\x00-\x7F]+', '', str(text)).strip()
+    return clean
 
 # ==========================================
 # STEP 0: Strictly AI & Tech News & Learning Topics Ingestion
@@ -89,7 +91,7 @@ def get_trending_news_and_learning_topic():
     return selected_news, selected_learning
 
 # ==========================================
-# STEP 1: Multi-Provider AI Engine (3 Packages: Short, Long News, AI Learning)
+# STEP 1: Multi-Provider AI Engine (Short, Long News, AI Learning)
 # ==========================================
 def generate_triple_scripts():
     print("🧠 Step 1: Generating Short, Long News, and 2-3 Min AI Learning Video Packages...")
@@ -165,7 +167,8 @@ Return ONLY a valid JSON object with this exact structure:
     if gemini_key:
         try:
             client = genai.Client(api_key=gemini_key)
-            gemini_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+            # Modern active Gemini models
+            gemini_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
             for g_model in gemini_models:
                 try:
                     print(f"   [Provider 1] Gemini API trying model '{g_model}'...")
@@ -180,28 +183,28 @@ Return ONLY a valid JSON object with this exact structure:
                         return content
                 except Exception as e:
                     print(f"   ⚠️ Gemini model '{g_model}' note: {e}")
-                    time.sleep(2)
+                    time.sleep(1)
         except Exception as e:
-            print(f"   ⚠️️ Gemini client error: {e}")
+            print(f"   ⚠️ Gemini client error: {e}")
 
     # --- PROVIDER 2: Groq API ---
     if groq_key:
         try:
             print("   [Provider 2] Switching to Groq API...")
             groq_client = Groq(api_key=groq_key)
-            models_data = groq_client.models.list().data
-            active_chat_models = [m.id for m in models_data if not any(b in m.id.lower() for b in ["whisper", "safetensors", "guard", "embed", "canopylabs", "orpheus"])]
+            # Target tested, reliable Groq chat models
+            groq_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma2-9b-it"]
 
-            for model in active_chat_models:
+            for model in groq_models:
                 try:
                     print(f"   Trying Groq model: '{model}'...")
                     completion = groq_client.chat.completions.create(
                         model=model,
                         messages=[{"role": "user", "content": prompt}],
                         response_format={"type": "json_object"},
-                        max_tokens=2200
+                        max_tokens=2500
                     )
-                    raw_text = completion.choices.message.content.strip()
+                    raw_text = completion.choices[0].message.content.strip()
                     content = json.loads(raw_text)
                     if isinstance(content, dict) and "short" in content and "long" in content and "learning" in content:
                         print(f"   ✅ Groq ({model}) success!")
@@ -221,7 +224,7 @@ Return ONLY a valid JSON object with this exact structure:
                 try:
                     res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": model, "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_object"}}, timeout=20)
                     if res.status_code == 200:
-                        content = json.loads(res.json()["choices"]["message"]["content"])
+                        content = json.loads(res.json()["choices"][0]["message"]["content"])
                         if isinstance(content, dict) and "short" in content and "long" in content and "learning" in content:
                             print(f"   ✅ OpenRouter ({model}) success!")
                             return content
@@ -309,7 +312,7 @@ def get_background_music(output_file="bg_music.mp3"):
     return None
 
 # ==========================================
-# STEP 3: High-CTR Catchy Custom Thumbnail Generator
+# STEP 3: High-CTR Catchy Custom Thumbnail Generator (Emoji-Safe)
 # ==========================================
 def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, output_file="thumbnail.png"):
     width, height = (1080, 1920) if is_short else (1280, 720)
@@ -363,14 +366,15 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
     border_color = (250, 204, 21) if "LEARN" in badge_text.upper() or "EXPLAINED" in title_text.upper() else (56, 189, 248)
     draw.rectangle([(16, 16), (width-16, height-16)], outline=border_color, width=8)
 
+    # Sanitize strings to strict ASCII to avoid PIL latin-1 encoder crash with emojis
     clean_badge = sanitize_text(badge_text).upper()
     clean_title = sanitize_text(title_text)
 
     if is_short:
         # Vertical 9:16 Thumbnail Design
-        # 1. Top High-CTR Badge Sticker
+        # 1. Top High-CTR Badge Sticker (ASCII clean prefix)
         draw.rectangle([(50, 140), (1030, 260)], fill=(244, 63, 94, 245), outline=(255, 255, 255), width=3)
-        draw.text((90, 175), f"🔥 {clean_badge}", fill=(255, 255, 255))
+        draw.text((90, 175), f"HOT: {clean_badge}", fill=(255, 255, 255))
 
         # 2. Lower Main Title Box with High-Contrast Yellow/Cyan Text
         draw.rectangle([(50, 1150), (1030, 1750)], fill=(15, 23, 42, 240), outline=border_color, width=5)
@@ -387,22 +391,22 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
 
         y_off = 1190
         for idx, line in enumerate(lines[:6]):
-            # Draw shadow for depth
-            draw.text((93, y_off+3), line, fill=(0, 0, 0))
+            safe_line = sanitize_text(line)
+            draw.text((93, y_off+3), safe_line, fill=(0, 0, 0)) # Shadow
             text_color = (250, 204, 21) if idx % 2 == 0 else (56, 189, 248)
-            draw.text((90, y_off), line, fill=text_color)
+            draw.text((90, y_off), safe_line, fill=text_color)
             y_off += 70
 
         # Bottom Call to Action Sticker
         draw.rectangle([(50, 1770), (1030, 1860)], fill=(16, 185, 129, 245))
-        draw.text((140, 1795), "► WATCH NOW | 100% EXPLAINED", fill=(255, 255, 255))
+        draw.text((140, 1795), "WATCH NOW | 100% EXPLAINED", fill=(255, 255, 255))
 
     else:
         # Widescreen 16:9 Thumbnail Design
         # 1. Top Left Badge Sticker
         badge_bg = (244, 63, 94, 245) if "HOT" in clean_badge or "BREAKTHROUGH" in clean_badge else (147, 51, 234, 245)
         draw.rectangle([(60, 60), (700, 150)], fill=badge_bg, outline=(255, 255, 255), width=3)
-        draw.text((90, 85), f"⚡ {clean_badge}", fill=(255, 255, 255))
+        draw.text((90, 85), f"HOT: {clean_badge}", fill=(255, 255, 255))
 
         # 2. Large Main Headline Box
         draw.rectangle([(60, 180), (1220, 620)], fill=(15, 23, 42, 235), outline=border_color, width=5)
@@ -419,9 +423,10 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
 
         y_off = 210
         for idx, line in enumerate(lines[:5]):
-            draw.text((94, y_off+4), line, fill=(0, 0, 0)) # Drop shadow
+            safe_line = sanitize_text(line)
+            draw.text((94, y_off+4), safe_line, fill=(0, 0, 0)) # Drop shadow
             text_color = (250, 204, 21) if idx % 2 == 0 else (255, 255, 255)
-            draw.text((90, y_off), line, fill=text_color)
+            draw.text((90, y_off), safe_line, fill=text_color)
             y_off += 75
 
         # Bottom Right Floating Sticker
@@ -651,7 +656,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
             print(f"⚠️ YouTube API Error ({e.resp.status}): {e}")
         return None
     except Exception as e:
-        print(f"⚠️️ Upload Exception: {e}")
+        print(f"⚠️ Upload Exception: {e}")
         return None
 
 # ==========================================
