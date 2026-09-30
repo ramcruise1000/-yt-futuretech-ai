@@ -54,8 +54,7 @@ def sanitize_text(text):
     if not text:
         return ""
     # Completely remove "Ed 222", "Ed. #222", "(Ed. #123)" edition tags safely without regex group syntax errors
-    clean = re.sub(r'\\(?Ed\.?\s*#?\d+\\)?', '', str(text), flags=re.IGNORECASE)
-    clean = re.sub(r'Edition\s*#?\d+', '', clean, flags=re.IGNORECASE)
+    clean = re.sub(r'\\(?\b(?:Ed|Edition)\.?\s*#?\s*\d+\\)?', '', str(text), flags=re.IGNORECASE)
     # Strip non-ASCII characters to avoid PIL latin-1 encoder crash
     clean = re.sub(r'[^\x00-\x7F]+', '', clean).strip()
     return clean
@@ -211,7 +210,7 @@ Return ONLY a valid JSON object with this exact structure:
         try:
             print("   [Provider 2] Switching to Groq API...")
             groq_client = Groq(api_key=groq_key)
-            groq_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"]
+            groq_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama3-70b-8192", "llama3-8b-8192"]
 
             for model in groq_models:
                 try:
