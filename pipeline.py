@@ -34,11 +34,30 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.errors import HttpError
 
-# Helper function to sanitize text strictly for PIL font rendering (ASCII only, no emojis)
+# Helper function to load crisp system TTF fonts
+def get_font(size):
+    font_paths = [
+        '/usr/share/fonts/truetype/roboto/unhinted/RobotoTTF/Roboto-Bold.ttf',
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+        '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'
+    ]
+    for p in font_paths:
+        if os.path.exists(p):
+            try:
+                return PIL.ImageFont.truetype(p, size)
+            except Exception:
+                pass
+    return PIL.ImageFont.load_default()
+
+# Helper function to sanitize text strictly for PIL & YouTube API (strips non-ASCII & removes "Ed 222" / edition tags)
 def sanitize_text(text):
     if not text:
         return ""
-    clean = re.sub(r'[^\x00-\x7F]+', '', str(text)).strip()
+    # Completely remove "Ed 222", "Ed. #222", "(Ed. #123)" edition tags
+    clean = re.sub(r'\\(?Ed\.?\s*#?\d+\\)?', '', str(text), flags=re.IGNORECASE)
+    clean = re.sub(r'Edition\s*#?\d+', '', clean, flags=re.IGNORECASE)
+    # Strip non-ASCII characters to avoid PIL latin-1 encoder crash
+    clean = re.sub(r'[^\x00-\x7F]+', '', clean).strip()
     return clean
 
 # ==========================================
@@ -110,6 +129,8 @@ Generate THREE distinct video content packages:
 1. "short": Vertical 9:16 Short (5 slides, ~45s spoken audio, total 90-120 words).
 2. "long": Widescreen 16:9 News Video (8 slides, ~1.5-2 mins spoken audio, total 250-300 words).
 3. "learning": Widescreen 16:9 Educational AI Slideshow (10-12 slides, ~2.5-3 mins spoken audio, total 350-450 words explaining the concept step-by-step).
+
+IMPORTANT: Do NOT include any edition numbers, run IDs, or 'Ed. #' tags in titles or descriptions! Keep titles clean, viral, and professional.
 
 Return ONLY a valid JSON object with this exact structure:
 {{
@@ -230,13 +251,12 @@ Return ONLY a valid JSON object with this exact structure:
         except Exception as e:
             print(f"   ⚠️ OpenRouter API error: {e}")
 
-    # --- PROVIDER 4: Procedural Fallback Engine ---
+    # --- PROVIDER 4: Procedural Fallback Engine (No "Ed 222" tags) ---
     print("   ⚠️ All remote AI providers busy. Generating Procedural Triple Script Package...")
-    run_id = int(time.time()) % 1000
     
     return {
         "short": {
-            "title": f"JUST UNVEILED: Autonomous AI Models Take Over Coding! | #Shorts (Ed. #{run_id})",
+            "title": "JUST UNVEILED: Autonomous AI Models Take Over Coding! | #Shorts",
             "description": "Quick breakdown of latest AI news regarding autonomous software agents. #Shorts #AINews #Tech",
             "thumb_prompt": "humanoid robot engineer glowing holographic cybernetics dark neon tech",
             "tags": ["AI News", "Shorts", "Tech", "Artificial Intelligence"],
@@ -249,7 +269,7 @@ Return ONLY a valid JSON object with this exact structure:
             ]
         },
         "long": {
-            "title": f"INSANE: Next-Gen AI Models Pass Critical Human Benchmarks | FutureTech Pulse (Ed. #{run_id})",
+            "title": "INSANE: Next-Gen AI Models Pass Critical Human Benchmarks | FutureTech Pulse",
             "description": "Comprehensive deep dive into recent artificial intelligence breakthroughs.",
             "thumb_prompt": "quantum supercomputing server matrix glowing cyan AI brain 8k render",
             "tags": ["AI Breakthrough", "Artificial Intelligence", "Tech News", "FutureTech"],
@@ -265,8 +285,8 @@ Return ONLY a valid JSON object with this exact structure:
             ]
         },
         "learning": {
-            "title": f"AI EXPLAINED: How Autonomous Agentic Neural Loops Work | FutureTech Pulse (Ed. #{run_id})",
-            "description": f"Master the mechanics of Agentic AI and Neural Decision Loops in this 2-3 minute educational slideshow lesson.",
+            "title": f"AI EXPLAINED: How Autonomous Agentic Neural Loops Work | FutureTech Pulse",
+            "description": "Master the mechanics of Agentic AI and Neural Decision Loops in this 2-3 minute educational slideshow lesson.",
             "thumb_prompt": "glowing holographic AI agent brain learning diagram masterclass cyan neon 8k",
             "tags": ["AI Learning", "AI Explained", "Machine Learning", "Tech Tutorial", "FutureTech"],
             "slides": [
@@ -315,13 +335,13 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
     width, height = (1080, 1920) if is_short else (1280, 720)
     print(f"🎨 Generating High-CTR Catchy Thumbnail ({width}x{height}) -> {output_file}...")
     
-    clean_visual = sanitize_text(visual_prompt) if visual_prompt else "futuristic AI brain cybernetic neon dark 8k"
+    clean_visual = sanitize_text(visual_prompt) or "futuristic AI brain cybernetic neon dark 8k"
     seed = random.randint(10000, 999999)
 
     base_img = None
 
     # Source 1: Pollinations AI Generation
-    encoded_prompt = urllib.parse.quote(f"{clean_visual}, vibrant cyberpunk lighting high contrast 8k render")
+    encoded_prompt = urllib.parse.quote(f"{clean_visual}, vibrant cyberpunk lighting 3d render cinematic quality 8k")
     img_url_pollinations = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
     try:
         res = requests.get(img_url_pollinations, timeout=8)
@@ -332,96 +352,102 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
     except Exception as e:
         print(f"   ⚠️ Pollinations thumbnail note: {e}")
 
-    # Source 2: Unsplash High-Res Tech Photography Fallback
+    # Source 2: Unsplash Tech Photo Fallback
     if base_img is None:
         try:
             unsplash_url = f"https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w={width}&h={height}&q=80"
             res = requests.get(unsplash_url, timeout=8)
-            if res.status_code == 200:
+            if res.status_code == 200 and len(res.content) > 5000:
                 with open("thumb_bg_temp.png", "wb") as f:
                     f.write(res.content)
                 base_img = PIL.Image.open("thumb_bg_temp.png").convert("RGBA").resize((width, height))
         except Exception:
             pass
 
-    # Source 3: Procedural High-Contrast Radial Cyber-Grid Canvas (Guaranteed Non-Static)
+    # Source 3: Procedural High-Contrast Radial Canvas
     if base_img is None:
         base_img = PIL.Image.new("RGBA", (width, height), (10, 15, 30, 255))
         draw_proc = PIL.ImageDraw.Draw(base_img)
-        center_x, center_y = width // 2, height // 2
-        colors = [(236, 72, 153, 90), (56, 189, 248, 90), (168, 85, 247, 90), (250, 204, 21, 90)]
+        colors = [(236, 72, 153, 110), (56, 189, 248, 110), (168, 85, 247, 110), (250, 204, 21, 110)]
         for i in range(16):
-            angle = (i / 16) * 2 * np.pi
-            end_x = int(center_x + width * np.cos(angle))
-            end_y = int(center_y + height * np.sin(angle))
-            draw_proc.line([(center_x, center_y), (end_x, end_y)], fill=colors[i % len(colors)], width=45)
+            x0 = random.randint(0, width)
+            y0 = random.randint(0, height)
+            draw_proc.ellipse([x0-250, y0-250, x0+250, y0+250], fill=colors[i % len(colors)])
+        base_img = base_img.filter(PIL.ImageFilter.GaussianBlur(25))
 
-    # Apply Dark Vignette Gradient Overlay for readability
+    # Apply Translucent Overlay for High Readability
     gradient = PIL.Image.new("RGBA", (width, height), (0, 0, 0, 0))
     g_draw = PIL.ImageDraw.Draw(gradient)
     if is_short:
-        g_draw.rectangle([(0, 0), (width, 360)], fill=(15, 23, 42, 215))
-        g_draw.rectangle([(0, 1100), (width, height)], fill=(15, 23, 42, 235))
+        g_draw.rectangle([(0, 0), (width, 360)], fill=(10, 15, 30, 180))
+        g_draw.rectangle([(0, 1050), (width, height)], fill=(10, 15, 30, 190))
     else:
-        g_draw.rectangle([(0, 0), (width, 210)], fill=(15, 23, 42, 225))
-        g_draw.rectangle([(0, 180), (width, height)], fill=(15, 23, 42, 210))
+        g_draw.rectangle([(0, 0), (width, 180)], fill=(10, 15, 30, 190))
+        g_draw.rectangle([(0, 160), (width, height)], fill=(10, 15, 30, 150))
 
     base_img = PIL.Image.alpha_composite(base_img, gradient)
     draw = PIL.ImageDraw.Draw(base_img)
 
     # Outer Neon Glowing Frame
     border_color = (250, 204, 21) if "LEARN" in badge_text.upper() or "EXPLAINED" in title_text.upper() else (56, 189, 248)
-    draw.rectangle([(16, 16), (width-16, height-16)], outline=border_color, width=8)
+    draw.rectangle([(16, 16), (width-16, height-16)], outline=border_color, width=10)
+
+    # Crisp System TTF Fonts
+    badge_font = get_font(38 if is_short else 44)
+    title_font = get_font(56 if is_short else 68)
+    cta_font = get_font(34 if is_short else 40)
 
     clean_badge = sanitize_text(badge_text).upper()
     clean_title = sanitize_text(title_text)
 
     if is_short:
         # Vertical 9:16 Thumbnail Design
-        # 1. Top High-CTR Badge Sticker
-        draw.rectangle([(50, 140), (1030, 260)], fill=(244, 63, 94, 245), outline=(255, 255, 255), width=3)
-        draw.text((90, 175), f"HOT: {clean_badge}", fill=(255, 255, 255))
+        draw.rectangle([(50, 140), (1030, 260)], fill=(244, 63, 94, 245), outline=(255, 255, 255), width=4)
+        draw.text((90, 172), f"HOT: {clean_badge}", fill=(255, 255, 255), font=badge_font)
 
-        # 2. Lower Main Title Box with High-Contrast Yellow/Cyan Text
-        draw.rectangle([(50, 1150), (1030, 1750)], fill=(15, 23, 42, 240), outline=border_color, width=5)
+        # Translucent Glass Box (fill=130 allows AI backdrop image to shine through)
+        draw.rectangle([(50, 1100), (1030, 1740)], fill=(10, 15, 30, 140), outline=border_color, width=6)
         
         words = clean_title.split()
         lines, current_line = [], []
         for word in words:
             current_line.append(word)
-            if len(" ".join(current_line)) > 18:
+            if len(" ".join(current_line)) > 16:
                 lines.append(" ".join(current_line[:-1]))
                 current_line = [word]
         if current_line:
             lines.append(" ".join(current_line))
 
-        y_off = 1190
+        y_off = 1140
         for idx, line in enumerate(lines[:6]):
             safe_line = sanitize_text(line)
-            draw.text((93, y_off+3), safe_line, fill=(0, 0, 0)) # Drop shadow
+            # Black outline for maximum contrast
+            for dx, dy in [(-3,-3), (3,-3), (-3,3), (3,3), (0,4), (0,-4), (4,0), (-4,0)]:
+                draw.text((90+dx, y_off+dy), safe_line, fill=(0, 0, 0), font=title_font)
             text_color = (250, 204, 21) if idx % 2 == 0 else (56, 189, 248)
-            draw.text((90, y_off), safe_line, fill=text_color)
-            y_off += 70
+            draw.text((90, y_off), safe_line, fill=text_color, font=title_font)
+            y_off += 90
 
         # Bottom Call to Action Sticker
-        draw.rectangle([(50, 1770), (1030, 1860)], fill=(16, 185, 129, 245))
-        draw.text((140, 1795), "WATCH NOW | 100% EXPLAINED", fill=(255, 255, 255))
+        draw.rectangle([(50, 1760), (1030, 1860)], fill=(16, 185, 129, 245))
+        draw.text((120, 1790), "WATCH NOW | 100% EXPLAINED", fill=(255, 255, 255), font=cta_font)
 
     else:
         # Widescreen 16:9 Thumbnail Design
-        # 1. Top Left Badge Sticker
-        badge_bg = (244, 63, 94, 245) if "HOT" in clean_badge or "BREAKTHROUGH" in clean_badge else (147, 51, 234, 245)
-        draw.rectangle([(60, 60), (700, 150)], fill=badge_bg, outline=(255, 255, 255), width=3)
-        draw.text((90, 85), f"HOT: {clean_badge}", fill=(255, 255, 255))
+        draw.rectangle([(60, 50), (680, 150)], fill=(244, 63, 94, 245), outline=(255, 255, 255), width=4)
+        draw.text((90, 75), f"HOT: {clean_badge}", fill=(255, 255, 255), font=badge_font)
 
-        # 2. Large Main Headline Box
-        draw.rectangle([(60, 180), (1220, 620)], fill=(15, 23, 42, 235), outline=border_color, width=5)
+        draw.rectangle([(720, 50), (1220, 150)], fill=(147, 51, 234, 245), outline=(255, 255, 255), width=3)
+        draw.text((750, 75), "NEW 2026 LESSON", fill=(255, 255, 255), font=badge_font)
+
+        # Translucent Glass Box (fill=130)
+        draw.rectangle([(60, 180), (1220, 660)], fill=(10, 15, 30, 130), outline=border_color, width=6)
 
         words = clean_title.split()
         lines, current_line = [], []
         for word in words:
             current_line.append(word)
-            if len(" ".join(current_line)) > 28:
+            if len(" ".join(current_line)) > 20:
                 lines.append(" ".join(current_line[:-1]))
                 current_line = [word]
         if current_line:
@@ -430,14 +456,12 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
         y_off = 210
         for idx, line in enumerate(lines[:5]):
             safe_line = sanitize_text(line)
-            draw.text((94, y_off+4), safe_line, fill=(0, 0, 0)) # Drop shadow
+            # Black outline
+            for dx, dy in [(-3,-3), (3,-3), (-3,3), (3,3), (0,4), (0,-4), (4,0), (-4,0)]:
+                draw.text((90+dx, y_off+dy), safe_line, fill=(0, 0, 0), font=title_font)
             text_color = (250, 204, 21) if idx % 2 == 0 else (255, 255, 255)
-            draw.text((90, y_off), safe_line, fill=text_color)
-            y_off += 75
-
-        # Bottom Right Floating Sticker
-        draw.rectangle([(750, 60), (1220, 150)], fill=(16, 185, 129, 245), outline=(255, 255, 255), width=2)
-        draw.text((780, 85), "NEW 2026 LESSON", fill=(255, 255, 255))
+            draw.text((90, y_off), safe_line, fill=text_color, font=title_font)
+            y_off += 90
 
     base_img = base_img.convert("RGB")
     base_img.save(output_file)
@@ -593,7 +617,10 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
 # STEP 5: YouTube API Uploader with Graceful Limit Handling
 # ==========================================
 def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None):
-    print(f"🚀 Uploading {video_file} to YouTube...")
+    clean_title = sanitize_text(title)
+    clean_desc = sanitize_text(description)
+    print(f"🚀 Uploading {video_file} to YouTube | Title: '{clean_title}'...")
+    
     client_id = os.environ.get("YOUTUBE_CLIENT_ID")
     client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
     refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN")
@@ -614,11 +641,11 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
     youtube = build("youtube", "v3", credentials=creds)
     
     # Standard AI Disclosure in description for YouTube Policy Compliance
-    full_description = f"{sanitize_text(description)[:4500]}\n\n🤖 AI CONTENT DISCLAIMER: This video features AI-synthesized narration, script analysis, and visual graphics generated for automated tech news reporting and education."
+    full_description = f"{clean_desc[:4500]}\n\n🤖 AI CONTENT DISCLAIMER: This video features AI-synthesized narration, script analysis, and visual graphics generated for automated tech news reporting and education."
 
     body = {
         "snippet": {
-            "title": sanitize_text(title)[:100],
+            "title": clean_title[:100],
             "description": full_description,
             "tags": [sanitize_text(t) for t in tags],
             "categoryId": "28"
@@ -645,7 +672,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
         # Set Custom Thumbnail via API
         if thumbnail_file and os.path.exists(thumbnail_file):
             try:
-                print(f"🖼️️ Setting custom thumbnail for Video ID {video_id}...")
+                print(f"🖼️ Setting custom thumbnail for Video ID {video_id}...")
                 youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_file)).execute()
                 print("   ✅ Custom thumbnail published successfully!")
             except Exception as e:
