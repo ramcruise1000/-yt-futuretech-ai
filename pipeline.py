@@ -38,7 +38,6 @@ from googleapiclient.errors import HttpError
 def sanitize_text(text):
     if not text:
         return ""
-    # Strip non-ASCII characters to avoid PIL latin-1 encoder crash with emojis
     clean = re.sub(r'[^\x00-\x7F]+', '', str(text)).strip()
     return clean
 
@@ -167,7 +166,6 @@ Return ONLY a valid JSON object with this exact structure:
     if gemini_key:
         try:
             client = genai.Client(api_key=gemini_key)
-            # Modern active Gemini models
             gemini_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
             for g_model in gemini_models:
                 try:
@@ -192,7 +190,6 @@ Return ONLY a valid JSON object with this exact structure:
         try:
             print("   [Provider 2] Switching to Groq API...")
             groq_client = Groq(api_key=groq_key)
-            # Target tested, reliable Groq chat models
             groq_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma2-9b-it"]
 
             for model in groq_models:
@@ -204,7 +201,7 @@ Return ONLY a valid JSON object with this exact structure:
                         response_format={"type": "json_object"},
                         max_tokens=2500
                     )
-                    raw_text = completion.choices[0].message.content.strip()
+                    raw_text = completion.choices.message.content.strip()
                     content = json.loads(raw_text)
                     if isinstance(content, dict) and "short" in content and "long" in content and "learning" in content:
                         print(f"   ✅ Groq ({model}) success!")
@@ -224,7 +221,7 @@ Return ONLY a valid JSON object with this exact structure:
                 try:
                     res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": model, "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_object"}}, timeout=20)
                     if res.status_code == 200:
-                        content = json.loads(res.json()["choices"][0]["message"]["content"])
+                        content = json.loads(res.json()["choices"]["message"]["content"])
                         if isinstance(content, dict) and "short" in content and "long" in content and "learning" in content:
                             print(f"   ✅ OpenRouter ({model}) success!")
                             return content
@@ -312,7 +309,7 @@ def get_background_music(output_file="bg_music.mp3"):
     return None
 
 # ==========================================
-# STEP 3: High-CTR Catchy Custom Thumbnail Generator (Emoji-Safe)
+# STEP 3: Multi-Source High-CTR Catchy Thumbnail Generator
 # ==========================================
 def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, output_file="thumbnail.png"):
     width, height = (1080, 1920) if is_short else (1280, 720)
@@ -320,44 +317,54 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
     
     clean_visual = sanitize_text(visual_prompt) if visual_prompt else "futuristic AI brain cybernetic neon dark 8k"
     seed = random.randint(10000, 999999)
-    encoded_prompt = urllib.parse.quote(f"{clean_visual}, high contrast vibrant neon cyberpunk cinematic lighting 8k quality render")
-    img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
-    
-    # Try fetching AI visual backdrop with retries
+
     base_img = None
-    for attempt in range(1, 3):
+
+    # Source 1: Pollinations AI Generation
+    encoded_prompt = urllib.parse.quote(f"{clean_visual}, vibrant cyberpunk lighting high contrast 8k render")
+    img_url_pollinations = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
+    try:
+        res = requests.get(img_url_pollinations, timeout=8)
+        if res.status_code == 200 and len(res.content) > 5000:
+            with open("thumb_bg_temp.png", "wb") as f:
+                f.write(res.content)
+            base_img = PIL.Image.open("thumb_bg_temp.png").convert("RGBA").resize((width, height))
+    except Exception as e:
+        print(f"   ⚠️ Pollinations thumbnail note: {e}")
+
+    # Source 2: Unsplash High-Res Tech Photography Fallback
+    if base_img is None:
         try:
-            res = requests.get(img_url, timeout=10)
+            unsplash_url = f"https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w={width}&h={height}&q=80"
+            res = requests.get(unsplash_url, timeout=8)
             if res.status_code == 200:
                 with open("thumb_bg_temp.png", "wb") as f:
                     f.write(res.content)
                 base_img = PIL.Image.open("thumb_bg_temp.png").convert("RGBA").resize((width, height))
-                break
         except Exception:
-            time.sleep(1)
+            pass
 
-    # Fallback to Procedural High-Contrast Cyber Grid Background if remote API fails
+    # Source 3: Procedural High-Contrast Radial Cyber-Grid Canvas (Guaranteed Non-Static)
     if base_img is None:
-        base_img = PIL.Image.new("RGBA", (width, height), (15, 23, 42, 255))
-        draw_fallback = PIL.ImageDraw.Draw(base_img)
-        # Draw cyber grid lines
-        grid_step = 60
-        for x in range(0, width, grid_step):
-            draw_fallback.line([(x, 0), (x, height)], fill=(30, 58, 138, 120), width=1)
-        for y in range(0, height, grid_step):
-            draw_fallback.line([(0, y), (width, y)], fill=(30, 58, 138, 120), width=1)
+        base_img = PIL.Image.new("RGBA", (width, height), (10, 15, 30, 255))
+        draw_proc = PIL.ImageDraw.Draw(base_img)
+        center_x, center_y = width // 2, height // 2
+        colors = [(236, 72, 153, 90), (56, 189, 248, 90), (168, 85, 247, 90), (250, 204, 21, 90)]
+        for i in range(16):
+            angle = (i / 16) * 2 * np.pi
+            end_x = int(center_x + width * np.cos(angle))
+            end_y = int(center_y + height * np.sin(angle))
+            draw_proc.line([(center_x, center_y), (end_x, end_y)], fill=colors[i % len(colors)], width=45)
 
-    # Apply Dark Gradient Overlay for maximum title readability
+    # Apply Dark Vignette Gradient Overlay for readability
     gradient = PIL.Image.new("RGBA", (width, height), (0, 0, 0, 0))
     g_draw = PIL.ImageDraw.Draw(gradient)
     if is_short:
-        # Dark top and bottom overlays
-        g_draw.rectangle([(0, 0), (width, 350)], fill=(15, 23, 42, 210))
-        g_draw.rectangle([(0, 1100), (width, height)], fill=(15, 23, 42, 230))
+        g_draw.rectangle([(0, 0), (width, 360)], fill=(15, 23, 42, 215))
+        g_draw.rectangle([(0, 1100), (width, height)], fill=(15, 23, 42, 235))
     else:
-        # Widescreen left and top dark overlay
-        g_draw.rectangle([(0, 0), (width, 200)], fill=(15, 23, 42, 220))
-        g_draw.rectangle([(0, 180), (width, height)], fill=(15, 23, 42, 200))
+        g_draw.rectangle([(0, 0), (width, 210)], fill=(15, 23, 42, 225))
+        g_draw.rectangle([(0, 180), (width, height)], fill=(15, 23, 42, 210))
 
     base_img = PIL.Image.alpha_composite(base_img, gradient)
     draw = PIL.ImageDraw.Draw(base_img)
@@ -366,13 +373,12 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
     border_color = (250, 204, 21) if "LEARN" in badge_text.upper() or "EXPLAINED" in title_text.upper() else (56, 189, 248)
     draw.rectangle([(16, 16), (width-16, height-16)], outline=border_color, width=8)
 
-    # Sanitize strings to strict ASCII to avoid PIL latin-1 encoder crash with emojis
     clean_badge = sanitize_text(badge_text).upper()
     clean_title = sanitize_text(title_text)
 
     if is_short:
         # Vertical 9:16 Thumbnail Design
-        # 1. Top High-CTR Badge Sticker (ASCII clean prefix)
+        # 1. Top High-CTR Badge Sticker
         draw.rectangle([(50, 140), (1030, 260)], fill=(244, 63, 94, 245), outline=(255, 255, 255), width=3)
         draw.text((90, 175), f"HOT: {clean_badge}", fill=(255, 255, 255))
 
@@ -392,7 +398,7 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
         y_off = 1190
         for idx, line in enumerate(lines[:6]):
             safe_line = sanitize_text(line)
-            draw.text((93, y_off+3), safe_line, fill=(0, 0, 0)) # Shadow
+            draw.text((93, y_off+3), safe_line, fill=(0, 0, 0)) # Drop shadow
             text_color = (250, 204, 21) if idx % 2 == 0 else (56, 189, 248)
             draw.text((90, y_off), safe_line, fill=text_color)
             y_off += 70
@@ -639,7 +645,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
         # Set Custom Thumbnail via API
         if thumbnail_file and os.path.exists(thumbnail_file):
             try:
-                print(f"🖼️ Setting custom thumbnail for Video ID {video_id}...")
+                print(f"🖼️️ Setting custom thumbnail for Video ID {video_id}...")
                 youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_file)).execute()
                 print("   ✅ Custom thumbnail published successfully!")
             except Exception as e:
