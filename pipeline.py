@@ -53,11 +53,11 @@ def get_font(size):
 def sanitize_text(text):
     if not text:
         return ""
-    # Safely remove "(Ed. #123)", "Ed 222", "Edition #99" without regex syntax errors
-    clean = re.sub(r'\\(?\b(?:Ed|Edition)\.?\s*#?\s*\d+\\)?', '', str(text), flags=re.IGNORECASE)
-    # Strip non-ASCII characters to avoid PIL latin-1 encoder crash
+    # Safely strip "(Ed. #123)", "Ed 222", "Edition 99" without regex syntax errors
+    clean = re.sub(r'\\(?\b(?:Ed|Edition)\.?\s*#?\s*\d+\b\\)?', '', str(text), flags=re.IGNORECASE)
+    # Strip non-ASCII characters to avoid PIL encoder issues
     clean = re.sub(r'[^\x00-\x7F]+', '', clean).strip()
-    # Clean up double spaces left behind
+    # Normalize extra spaces
     clean = re.sub(r'\s+', ' ', clean)
     return clean
 
@@ -229,7 +229,7 @@ Return ONLY a valid JSON object with this exact structure:
                         print(f"   ✅ Groq ({model}) success!")
                         return content
                 except Exception as err:
-                    print(f"   ⚠️ Groq model '{model}' skipped: {err}")
+                    print(f"   ⚠️️ Groq model '{model}' skipped: {err}")
         except Exception as e:
             print(f"   ⚠️ Groq API error: {e}")
 
@@ -675,7 +675,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
                 youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_file)).execute()
                 print("   ✅ Custom thumbnail published successfully!")
             except Exception as e:
-                print(f"   ⚠️ Could not set thumbnail ({e}). Ensure YouTube channel is phone-verified for custom thumbnails.")
+                print(f"   ⚠️️ Could not set thumbnail ({e}). Ensure YouTube channel is phone-verified for custom thumbnails.")
 
         return video_id
 
