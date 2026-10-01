@@ -109,7 +109,7 @@ def get_trending_news_and_learning_topic():
                         clean_summary = sanitize_text(summary.replace('"', "'").replace("\n", " "))
                         news_items.append({"title": clean_title, "summary": clean_summary})
         except Exception as e:
-            print(f"   ⚠️️ RSS Feed error ({url}): {e}")
+            print(f"   ⚠️ RSS Feed error ({url}): {e}")
 
     if not news_items:
         news_items = [{
@@ -157,6 +157,9 @@ Generate THREE distinct video content packages:
 2. "long": Widescreen 16:9 Main AI News Video explaining the latest news in detail (8 slides, ~1.5-2 mins spoken audio, total 250-300 words).
 3. "learning": SEPARATE Widescreen 16:9 Educational AI Masterclass Lesson explaining '{learning_topic}' step-by-step (11 slides, ~2.5-3 mins spoken audio, total 350-450 words focusing exclusively on this single AI topic).
 
+VISUAL PROMPT REQUIREMENT FOR ALL SLIDES:
+Every "prompt" field MUST describe highly engaging, dynamic visual scenes featuring human characters, software engineers, tech presenters, cybernetic specialists, or animated characters actively interacting with futuristic AI holograms, neural interfaces, or high-tech laboratories. Avoid abstract static backgrounds — ensure every scene has people or character elements related to the topic!
+
 IMPORTANT: Do NOT include any edition numbers, run IDs, or 'Ed. #' tags in titles or descriptions!
 
 Return ONLY a valid JSON object with this exact structure:
@@ -164,49 +167,49 @@ Return ONLY a valid JSON object with this exact structure:
   "short": {{
     "title": "{news_item['title'][:60]} | #Shorts",
     "description": "Quick breakdown of latest AI news. #Shorts #AINews #Tech",
-    "thumb_prompt": "cybernetic humanoid robot head glowing cyan neon dark technical background 8k",
+    "thumb_prompt": "futuristic female software engineer interacting with glowing cyan AI hologram 3d character render 8k",
     "tags": ["AI News", "Shorts", "Tech", "Artificial Intelligence"],
     "slides": [
-      {{"text": "Slide 1 sentence...", "prompt": "visual prompt 1", "badge": "BREAKING AI"}},
-      {{"text": "Slide 2 sentence...", "prompt": "visual prompt 2", "badge": "NEURAL AGENTS"}},
-      {{"text": "Slide 3 sentence...", "prompt": "visual prompt 3", "badge": "INDUSTRY IMPACT"}},
-      {{"text": "Slide 4 sentence...", "prompt": "visual prompt 4", "badge": "FUTURE OUTLOOK"}},
-      {{"text": "Subscribe to FutureTech Pulse right now for daily breaking AI news!", "prompt": "futuristic neon subscribe button circuit background", "badge": "SUBSCRIBE NOW"}}
+      {{"text": "Slide 1 sentence...", "prompt": "futuristic tech specialist reacting to breaking AI news on holographic display 8k", "badge": "BREAKING AI"}},
+      {{"text": "Slide 2 sentence...", "prompt": "software engineer analyzing autonomous AI agent coding on digital screens 8k", "badge": "NEURAL AGENTS"}},
+      {{"text": "Slide 3 sentence...", "prompt": "tech team discussing industry impact in modern futuristic boardroom 8k", "badge": "INDUSTRY IMPACT"}},
+      {{"text": "Slide 4 sentence...", "prompt": "cybernetic specialist monitoring future AI benchmarks on glowing matrix terminal 8k", "badge": "FUTURE OUTLOOK"}},
+      {{"text": "Subscribe to FutureTech Pulse right now for daily breaking AI news!", "prompt": "animated tech presenter holding futuristic holographic glowing phone with channel logo 8k", "badge": "SUBSCRIBE NOW"}}
     ]
   }},
   "long": {{
     "title": "{news_item['title'][:80]} | FutureTech Pulse",
     "description": "Comprehensive deep dive into recent artificial intelligence developments: {news_item['summary']}",
-    "thumb_prompt": "supercomputer matrix glowing blue circuits cybernetic AI core 8k render",
+    "thumb_prompt": "team of scientists surrounding supercomputer matrix glowing blue circuits cybernetic AI core 8k render",
     "tags": ["AI Breakthrough", "Artificial Intelligence", "Tech News", "FutureTech"],
     "slides": [
-      {{"text": "Slide 1 sentence...", "prompt": "visual prompt 1", "badge": "AI DEEP DIVE"}},
-      {{"text": "Slide 2 sentence...", "prompt": "visual prompt 2", "badge": "NEURAL TECH"}},
-      {{"text": "Slide 3 sentence...", "prompt": "visual prompt 3", "badge": "INNOVATION"}},
-      {{"text": "Slide 4 sentence...", "prompt": "visual prompt 4", "badge": "BENCHMARKS"}},
-      {{"text": "Slide 5 sentence...", "prompt": "visual prompt 5", "badge": "INTEGRATION"}},
-      {{"text": "Slide 6 sentence...", "prompt": "visual prompt 6", "badge": "ALIGNMENT"}},
-      {{"text": "Slide 7 sentence...", "prompt": "visual prompt 7", "badge": "FUTURE HORIZON"}},
-      {{"text": "Make sure to subscribe to FutureTech Pulse for daily comprehensive AI coverage!", "prompt": "futuristic neon subscribe banner cyan dark", "badge": "SUBSCRIBE FOR MORE"}}
+      {{"text": "Slide 1 sentence...", "prompt": "futuristic female news presenter in cyberpunk studio introducing AI breakthrough 8k", "badge": "AI DEEP DIVE"}},
+      {{"text": "Slide 2 sentence...", "prompt": "lead engineer examining neural architecture diagrams with holographic floating controls 8k", "badge": "NEURAL TECH"}},
+      {{"text": "Slide 3 sentence...", "prompt": "innovative software developers coding alongside animated AI avatar assistants 8k", "badge": "INNOVATION"}},
+      {{"text": "Slide 4 sentence...", "prompt": "data scientists reviewing benchmark graphs on massive curved glass screens 8k", "badge": "BENCHMARKS"}},
+      {{"text": "Slide 5 sentence...", "prompt": "enterprise IT team deploying AI software agents across global server networks 8k", "badge": "INTEGRATION"}},
+      {{"text": "Slide 6 sentence...", "prompt": "cybersecurity expert verifying alignment shield on glowing holographic terminal 8k", "badge": "ALIGNMENT"}},
+      {{"text": "Slide 7 sentence...", "prompt": "visionary technologist looking over futuristic smart city skyline at night 8k", "badge": "FUTURE HORIZON"}},
+      {{"text": "Make sure to subscribe to FutureTech Pulse for daily comprehensive AI coverage!", "prompt": "futuristic tech studio presenter inviting viewers to subscribe cyan lighting 8k", "badge": "SUBSCRIBE FOR MORE"}}
     ]
   }},
   "learning": {{
     "title": "AI EXPLAINED: {learning_topic} (3-Min Masterclass) | FutureTech Pulse",
     "description": "Master {learning_topic} step-by-step in this 2-3 minute educational AI slideshow lesson.",
-    "thumb_prompt": "glowing holographic neural network diagram learning class technical 8k render",
+    "thumb_prompt": "female AI professor standing in futuristic academy classroom with glowing neural diagram 8k",
     "tags": ["AI Learning", "AI Explained", "Machine Learning", "Tech Tutorial", "FutureTech"],
     "slides": [
-      {{"text": "Welcome to FutureTech AI Academy. In this 3-minute lesson, we are breaking down {learning_topic} step-by-step.", "prompt": "futuristic holographic academy classroom glowing neural diagram 8k", "badge": "LESSON OVERVIEW"}},
-      {{"text": "To master this concept, we first look at how traditional data algorithms differ from high-dimensional neural representations.", "prompt": "data flow matrix comparison traditional vs neural networks cyan", "badge": "CORE FOUNDATION"}},
-      {{"text": "At the heart of this system lies an encoder mechanism that transforms raw input tokens into mathematical vector embeddings.", "prompt": "vector embeddings space 3d spatial data nodes glowing blue", "badge": "VECTOR EMBEDDINGS"}},
-      {{"text": "These mathematical vectors allow the neural model to capture semantic relationships across thousands of dimensions simultaneously.", "prompt": "synaptic neural connections firing glowing nodes network", "badge": "SEMANTIC MATRIX"}},
-      {{"text": "Next, multi-head self-attention mechanisms calculate contextual importance weights for every token relative to the overall sequence.", "prompt": "multi head attention mechanism visualization glowing beams", "badge": "ATTENTION LAYERS"}},
-      {{"text": "By computing these attention scores in parallel, modern GPUs scale computation across billions of parameters seamlessly.", "prompt": "supercomputer parallel processing GPU cluster neon trails", "badge": "PARALLEL COMPUTATION"}},
-      {{"text": "During the training phase, mathematical loss functions evaluate model predictions and guide gradient descent optimization.", "prompt": "gradient descent mathematical surface optimization 3d graph", "badge": "GRADIENT DESCENT"}},
-      {{"text": "Backpropagation then calculates partial derivatives, updating synaptic weights across all neural network layers continuously.", "prompt": "backpropagation neural network weight updates glowing nodes", "badge": "WEIGHT UPDATES"}},
-      {{"text": "In production environments, this enables autonomous software agents to reason, plan, and execute complex workflows independently.", "prompt": "autonomous AI software agent working on holographic dashboard", "badge": "REAL WORLD AGENTS"}},
-      {{"text": "Understanding these architectural foundations gives you a massive strategic edge as artificial intelligence transforms software engineering globally.", "prompt": "futuristic software developer collaborating with AI hologram", "badge": "STRATEGIC IMPACT"}},
-      {{"text": "Subscribe to FutureTech Pulse for daily 3-minute educational AI masterclasses and breaking technology lessons!", "prompt": "futuristic neon academy subscribe button glowing circuit", "badge": "SUBSCRIBE FOR LESSONS"}}
+      {{"text": "Welcome to FutureTech AI Academy. In this 3-minute lesson, we are breaking down {learning_topic} step-by-step.", "prompt": "female AI instructor in futuristic holographic academy classroom presenting neural lesson 8k", "badge": "LESSON OVERVIEW"}},
+      {{"text": "To master this concept, we first look at how traditional data algorithms differ from high-dimensional neural representations.", "prompt": "students interacting with 3D data flow matrix comparison in high-tech lecture hall 8k", "badge": "CORE FOUNDATION"}},
+      {{"text": "At the heart of this system lies an encoder mechanism that transforms raw input tokens into mathematical vector embeddings.", "prompt": "software architect examining 3D vector embeddings spatial data nodes with holographic gloves 8k", "badge": "VECTOR EMBEDDINGS"}},
+      {{"text": "These mathematical vectors allow the neural model to capture semantic relationships across thousands of dimensions simultaneously.", "prompt": "female researcher pointing at firing synaptic neural connections network hologram 8k", "badge": "SEMANTIC MATRIX"}},
+      {{"text": "Next, multi-head self-attention mechanisms calculate contextual importance weights for every token relative to the overall sequence.", "prompt": "engineer controlling multi-head attention mechanism glowing beams visualization 8k", "badge": "ATTENTION LAYERS"}},
+      {{"text": "By computing these attention scores in parallel, modern GPUs scale computation across billions of parameters seamlessly.", "prompt": "datacenter technician monitoring GPU cluster server room with glowing neon trails 8k", "badge": "PARALLEL COMPUTATION"}},
+      {{"text": "During the training phase, mathematical loss functions evaluate model predictions and guide gradient descent optimization.", "prompt": "mathematician adjusting 3D gradient descent surface optimization graph 8k", "badge": "GRADIENT DESCENT"}},
+      {{"text": "Backpropagation then calculates partial derivatives, updating synaptic weights across all neural network layers continuously.", "prompt": "AI specialist tracking backpropagation neural weight updates on multi-screen workstation 8k", "badge": "WEIGHT UPDATES"}},
+      {{"text": "In production environments, this enables autonomous software agents to reason, plan, and execute complex workflows independently.", "prompt": "developer collaborating with autonomous AI software agent on holographic interface 8k", "badge": "REAL WORLD AGENTS"}},
+      {{"text": "Understanding these architectural foundations gives you a massive strategic edge as artificial intelligence transforms software engineering globally.", "prompt": "futuristic software developer analyzing global AI trends on smart workstation 8k", "badge": "STRATEGIC IMPACT"}},
+      {{"text": "Subscribe to FutureTech Pulse for daily 3-minute educational AI masterclasses and breaking technology lessons!", "prompt": "tech instructor closing lesson with glowing futuristic academy channel banner 8k", "badge": "SUBSCRIBE FOR LESSONS"}}
     ]
   }}
 }}"""
@@ -288,49 +291,49 @@ Return ONLY a valid JSON object with this exact structure:
         "short": {
             "title": f"BREAKING: {t_head[:55]} | #Shorts",
             "description": f"Latest AI news update: {t_sum[:200]} #Shorts #AINews #Tech",
-            "thumb_prompt": "humanoid robot engineer glowing holographic cybernetics dark neon tech",
+            "thumb_prompt": "futuristic female software engineer interacting with glowing cyan AI hologram 3d character render 8k",
             "tags": ["AI News", "Shorts", "Tech", "Artificial Intelligence"],
             "slides": [
-                {"text": f"Breaking AI news today: {t_head}.", "prompt": "glowing cybernetic AI brain dark cyan neon 8k", "badge": "BREAKING AI"},
-                {"text": f"Here are the details: {t_sum}", "prompt": "humanoid robot working at holographic terminal", "badge": "NEWS BREAKDOWN"},
-                {"text": "Tech industry analysts report this breakthrough will significantly accelerate enterprise automation.", "prompt": "quantum computing server room glowing blue data streams", "badge": "INDUSTRY IMPACT"},
-                {"text": "As deployment expands globally, researchers highlight key safety and benchmark performance metrics.", "prompt": "cybersecurity shield glowing neon circuit background", "badge": "SAFETY & CONTROL"},
-                {"text": "Subscribe to FutureTech Pulse right now for daily breaking AI news updates!", "prompt": "futuristic neon subscribe button circuit background", "badge": "SUBSCRIBE NOW"}
+                {"text": f"Breaking AI news today: {t_head}.", "prompt": "futuristic tech specialist reacting to breaking AI news on holographic display 8k", "badge": "BREAKING AI"},
+                {"text": f"Here are the details: {t_sum}", "prompt": "software engineer analyzing autonomous AI agent coding on digital screens 8k", "badge": "NEWS BREAKDOWN"},
+                {"text": "Tech industry analysts report this breakthrough will significantly accelerate enterprise automation.", "prompt": "tech team discussing industry impact in modern futuristic boardroom 8k", "badge": "INDUSTRY IMPACT"},
+                {"text": "As deployment expands globally, researchers highlight key safety and benchmark performance metrics.", "prompt": "cybernetic specialist monitoring future AI benchmarks on glowing matrix terminal 8k", "badge": "SAFETY & CONTROL"},
+                {"text": "Subscribe to FutureTech Pulse right now for daily breaking AI news updates!", "prompt": "animated tech presenter holding futuristic holographic glowing phone with channel logo 8k", "badge": "SUBSCRIBE NOW"}
             ]
         },
         "long": {
             "title": f"INSANE: {t_head[:75]} | FutureTech Pulse",
             "description": f"Comprehensive deep dive into recent artificial intelligence developments: {t_sum}",
-            "thumb_prompt": "quantum supercomputing server matrix glowing cyan AI brain 8k render",
+            "thumb_prompt": "team of scientists surrounding supercomputer matrix glowing blue circuits cybernetic AI core 8k render",
             "tags": ["AI Breakthrough", "Artificial Intelligence", "Tech News", "FutureTech"],
             "slides": [
-                {"text": f"Welcome to FutureTech Pulse. Today we are exploring milestone AI developments regarding {t_head}.", "prompt": "futuristic glowing cybernetic AI brain 8k", "badge": "AI DEEP DIVE"},
-                {"text": f"To understand this news story, let us look at the core summary: {t_sum}", "prompt": "high tech robotics laboratory dark aesthetic", "badge": "NEWS ANALYSIS"},
-                {"text": "Leading research laboratories demonstrate that this new architecture dramatically improves execution speed.", "prompt": "floating holographic code matrix glowing cyan", "badge": "SOFTWARE INNOVATION"},
-                {"text": "In rigorous benchmark evaluations, the neural system surpassed existing industry standards in reasoning.", "prompt": "supercomputer server room glowing neon circuit trails", "badge": "BENCHMARK PERFORMANCE"},
-                {"text": "Major cloud infrastructure providers are already preparing to integrate these models into enterprise software.", "prompt": "futuristic digital globe with connected data streams", "badge": "ENTERPRISE INTEGRATION"},
-                {"text": "At the same time, security researchers are introducing novel alignment frameworks to ensure reliable operations.", "prompt": "cybersecurity shield visual glowing neon lock code", "badge": "SAFETY & ALIGNMENT"},
-                {"text": "Industry experts project that these neural systems will become the primary engine for tech within the decade.", "prompt": "futuristic city skyline at night floating glowing network", "badge": "FUTURE HORIZON"},
-                {"text": "Make sure to subscribe to FutureTech Pulse for daily comprehensive coverage of artificial intelligence!", "prompt": "futuristic neon subscribe banner cyan dark", "badge": "SUBSCRIBE FOR MORE"}
+                {"text": f"Welcome to FutureTech Pulse. Today we are exploring milestone AI developments regarding {t_head}.", "prompt": "futuristic female news presenter in cyberpunk studio introducing AI breakthrough 8k", "badge": "AI DEEP DIVE"},
+                {"text": f"To understand this news story, let us look at the core summary: {t_sum}", "prompt": "lead engineer examining neural architecture diagrams with holographic floating controls 8k", "badge": "NEWS ANALYSIS"},
+                {"text": "Leading research laboratories demonstrate that this new architecture dramatically improves execution speed.", "prompt": "innovative software developers coding alongside animated AI avatar assistants 8k", "badge": "SOFTWARE INNOVATION"},
+                {"text": "In rigorous benchmark evaluations, the neural system surpassed existing industry standards in reasoning.", "prompt": "data scientists reviewing benchmark graphs on massive curved glass screens 8k", "badge": "BENCHMARK PERFORMANCE"},
+                {"text": "Major cloud infrastructure providers are already preparing to integrate these models into enterprise software.", "prompt": "enterprise IT team deploying AI software agents across global server networks 8k", "badge": "ENTERPRISE INTEGRATION"},
+                {"text": "At the same time, security researchers are introducing novel alignment frameworks to ensure reliable operations.", "prompt": "cybersecurity expert verifying alignment shield on glowing holographic terminal 8k", "badge": "SAFETY & ALIGNMENT"},
+                {"text": "Industry experts project that these neural systems will become the primary engine for tech within the decade.", "prompt": "visionary technologist looking over futuristic smart city skyline at night 8k", "badge": "FUTURE HORIZON"},
+                {"text": "Make sure to subscribe to FutureTech Pulse for daily comprehensive coverage of artificial intelligence!", "prompt": "futuristic tech studio presenter inviting viewers to subscribe cyan lighting 8k", "badge": "SUBSCRIBE FOR MORE"}
             ]
         },
         "learning": {
             "title": f"AI EXPLAINED: {learning_topic} (3-Min Masterclass) | FutureTech Pulse",
             "description": f"Master the mechanics of {learning_topic} in this 2-3 minute educational slideshow lesson.",
-            "thumb_prompt": "glowing holographic AI agent brain learning diagram masterclass cyan neon 8k",
+            "thumb_prompt": "female AI professor standing in futuristic academy classroom with glowing neural diagram 8k",
             "tags": ["AI Learning", "AI Explained", "Machine Learning", "Tech Tutorial", "FutureTech"],
             "slides": [
-                {"text": f"Welcome to FutureTech AI Academy. In this 3-minute lesson, we are breaking down {learning_topic} step-by-step.", "prompt": f"futuristic holographic academy classroom explaining {learning_topic} glowing neural diagram 8k", "badge": "LESSON OVERVIEW"},
-                {"text": "To master this concept, we first look at how traditional data algorithms differ from high-dimensional neural representations.", "prompt": f"data flow matrix comparison {learning_topic} glowing cyan data streams", "badge": "CORE FOUNDATION"},
-                {"text": "At the heart of this system lies an encoder mechanism that transforms raw input tokens into mathematical vector embeddings.", "prompt": "vector embeddings space 3d spatial data nodes glowing blue", "badge": "VECTOR EMBEDDINGS"},
-                {"text": "These mathematical vectors allow the neural model to capture semantic relationships across thousands of dimensions simultaneously.", "prompt": "synaptic neural connections firing glowing nodes network", "badge": "SEMANTIC MATRIX"},
-                {"text": "Next, multi-head self-attention mechanisms calculate contextual importance weights for every token relative to the overall sequence.", "prompt": "multi head attention mechanism visualization glowing beams", "badge": "ATTENTION LAYERS"},
-                {"text": "By computing these attention scores in parallel, modern GPUs scale computation across billions of parameters seamlessly.", "prompt": "supercomputer parallel processing GPU cluster neon trails", "badge": "PARALLEL COMPUTATION"},
-                {"text": "During the training phase, mathematical loss functions evaluate model predictions and guide gradient descent optimization.", "prompt": "gradient descent mathematical surface optimization 3d graph", "badge": "GRADIENT DESCENT"},
-                {"text": "Backpropagation then calculates partial derivatives, updating synaptic weights across all neural network layers continuously.", "prompt": "backpropagation neural network weight updates glowing nodes", "badge": "WEIGHT UPDATES"},
-                {"text": "In production environments, this enables autonomous software agents to reason, plan, and execute complex workflows independently.", "prompt": "autonomous AI software agent working on holographic dashboard", "badge": "REAL WORLD AGENTS"},
-                {"text": "Understanding these architectural foundations gives you a massive strategic edge as artificial intelligence transforms software engineering globally.", "prompt": "futuristic software developer collaborating with AI hologram", "badge": "STRATEGIC IMPACT"},
-                {"text": "Subscribe to FutureTech Pulse for daily 3-minute educational AI masterclasses and breaking technology lessons!", "prompt": "futuristic neon academy subscribe button glowing circuit", "badge": "SUBSCRIBE FOR LESSONS"}
+                {"text": f"Welcome to FutureTech AI Academy. In this 3-minute lesson, we are breaking down {learning_topic} step-by-step.", "prompt": f"female AI instructor in futuristic holographic academy classroom presenting {learning_topic} lesson 8k", "badge": "LESSON OVERVIEW"},
+                {"text": "To master this concept, we first look at how traditional data algorithms differ from high-dimensional neural representations.", "prompt": f"students interacting with 3D data flow matrix comparison in high-tech lecture hall 8k", "badge": "CORE FOUNDATION"},
+                {"text": "At the heart of this system lies an encoder mechanism that transforms raw input tokens into mathematical vector embeddings.", "prompt": "software architect examining 3D vector embeddings spatial data nodes with holographic gloves 8k", "badge": "VECTOR EMBEDDINGS"},
+                {"text": "These mathematical vectors allow the neural model to capture semantic relationships across thousands of dimensions simultaneously.", "prompt": "female researcher pointing at firing synaptic neural connections network hologram 8k", "badge": "SEMANTIC MATRIX"},
+                {"text": "Next, multi-head self-attention mechanisms calculate contextual importance weights for every token relative to the overall sequence.", "prompt": "engineer controlling multi-head attention mechanism glowing beams visualization 8k", "badge": "ATTENTION LAYERS"},
+                {"text": "By computing these attention scores in parallel, modern GPUs scale computation across billions of parameters seamlessly.", "prompt": "datacenter technician monitoring GPU cluster server room with glowing neon trails 8k", "badge": "PARALLEL COMPUTATION"},
+                {"text": "During the training phase, mathematical loss functions evaluate model predictions and guide gradient descent optimization.", "prompt": "mathematician adjusting 3D gradient descent surface optimization graph 8k", "badge": "GRADIENT DESCENT"},
+                {"text": "Backpropagation then calculates partial derivatives, updating synaptic weights across all neural network layers continuously.", "prompt": "AI specialist tracking backpropagation neural weight updates on multi-screen workstation 8k", "badge": "WEIGHT UPDATES"},
+                {"text": "In production environments, this enables autonomous software agents to reason, plan, and execute complex workflows independently.", "prompt": "developer collaborating with autonomous AI software agent on holographic interface 8k", "badge": "REAL WORLD AGENTS"},
+                {"text": "Understanding these architectural foundations gives you a massive strategic edge as artificial intelligence transforms software engineering globally.", "prompt": "futuristic software developer analyzing global AI trends on smart workstation 8k", "badge": "STRATEGIC IMPACT"},
+                {"text": "Subscribe to FutureTech Pulse for daily 3-minute educational AI masterclasses and breaking technology lessons!", "prompt": "tech instructor closing lesson with glowing futuristic academy channel banner 8k", "badge": "SUBSCRIBE FOR LESSONS"}
             ]
         }
     }
@@ -383,13 +386,13 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
     width, height = (1080, 1920) if is_short else (1280, 720)
     print(f"🎨 Generating High-CTR Catchy Thumbnail ({width}x{height}) -> {output_file}...")
     
-    clean_visual = sanitize_text(visual_prompt) or "futuristic AI brain cybernetic neon dark 8k"
+    clean_visual = sanitize_text(visual_prompt) or "futuristic female engineer interacting with glowing AI hologram character 8k"
     seed = random.randint(10000, 999999)
 
     base_img = None
 
-    # Source 1: Pollinations AI Generation (100% Royalty Free)
-    encoded_prompt = urllib.parse.quote(f"{clean_visual}, vibrant cyberpunk lighting 3d render cinematic quality 8k")
+    # Source 1: Pollinations AI Generation (100% Royalty Free, featuring human characters)
+    encoded_prompt = urllib.parse.quote(f"{clean_visual}, cinematic lighting, 3d character animation, futuristic human subject, 8k render")
     img_url_pollinations = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
     try:
         res = requests.get(img_url_pollinations, timeout=8)
@@ -403,7 +406,7 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
     # Source 2: Unsplash Tech Photo Fallback (License Free)
     if base_img is None:
         try:
-            unsplash_url = f"https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w={width}&h={height}&q=80"
+            unsplash_url = f"https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w={width}&h={height}&q=80"
             res = requests.get(unsplash_url, timeout=8)
             if res.status_code == 200 and len(res.content) > 5000:
                 with open("thumb_bg_temp.png", "wb") as f:
@@ -523,7 +526,7 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
 
     for idx, slide in enumerate(slides):
         slide_text = sanitize_text(slide.get("text", ""))
-        slide_prompt = sanitize_text(slide.get("prompt", "futuristic AI technology dark"))
+        slide_prompt = sanitize_text(slide.get("prompt", "futuristic tech specialist analyzing AI hologram 8k"))
         slide_badge = sanitize_text(slide.get("badge", "FUTURETECH AI"))
 
         # 1. Synthesize voiceover audio for this slide
@@ -534,9 +537,10 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
         slide_dur = max(slide_audio.duration, 2.2)
         print(f"   Slide {idx+1}/{len(slides)}: Duration = {slide_dur:.2f}s | Badge = '{slide_badge}'")
 
-        # 2. Copyright-Safe Image Fetcher (Pollinations AI / Procedural)
+        # 2. Copyright-Safe Image Fetcher with People / Character Focus (Pollinations AI / Unsplash)
         seed = random.randint(10000, 999999)
-        encoded_prompt = urllib.parse.quote(f"{slide_prompt}, dark cyber aesthetic 8k high quality render")
+        enhanced_prompt = f"{slide_prompt}, featuring engaging human character specialist, dynamic cinematic lighting, 3d render 8k"
+        encoded_prompt = urllib.parse.quote(enhanced_prompt)
         img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
         img_path = f"slide_{prefix}_{idx}.png"
 
@@ -551,11 +555,23 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
             pass
 
         if base_img is None:
+            # Unsplash Fallback with human tech subjects
+            try:
+                u_url = f"https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w={width}&h={height}&q=80"
+                res = requests.get(u_url, timeout=6)
+                if res.status_code == 200 and len(res.content) > 5000:
+                    with open(img_path, "wb") as f:
+                        f.write(res.content)
+                    base_img = PIL.Image.open(img_path).convert("RGB").resize((width, height))
+            except Exception:
+                pass
+
+        if base_img is None:
             base_img = generate_procedural_background(width, height, slide_prompt)
 
         base_img.save(img_path)
 
-        # 3. Dynamic Motion Frame Generator with Word-by-Word Highlight Captions
+        # 3. Dynamic Motion Frame Generator with Word-by-Word Highlight Captions (No "Subscribe For..." Overlay)
         words = slide_text.split()
         max_chars_per_line = 22 if is_short else 45
         lines = []
@@ -597,14 +613,14 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
                 draw.rectangle([(620, 60), (1000, 120)], fill=(15, 23, 42, 220), outline=(244, 63, 94), width=2)
                 draw.text((640, 80), "[AI-GENERATED MEDIA]", fill=(244, 63, 94), font=get_font(24))
 
-                # Caption Container
-                draw.rectangle([(60, 1240), (1020, 1680)], fill=(10, 15, 30, 220), outline=(56, 189, 248), width=3)
+                # Caption Container (Cleaned, No Subscribe Bar)
+                draw.rectangle([(60, 1320), (1020, 1780)], fill=(10, 15, 30, 220), outline=(56, 189, 248), width=3)
 
                 # Word-by-Word Highlight Animation
                 total_words = max(len(words), 1)
                 active_word_idx = int(progress * total_words)
 
-                y_start = 1270
+                y_start = 1350
                 word_counter = 0
                 for line_words in lines[:6]:
                     x = 90
@@ -615,10 +631,6 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
                         word_counter += 1
                     y_start += 58
 
-                # Bottom CTA Sticker
-                draw.rectangle([(60, 1720), (1020, 1820)], fill=(56, 189, 248, 240))
-                draw.text((180, 1750), "SUBSCRIBE FOR DAILY AI NEWS", fill=(15, 23, 42), font=get_font(36))
-
             else: # Widescreen 16:9
                 # Top Badge
                 draw.rectangle([(100, 50), (750, 120)], fill=(30, 41, 59, 235), outline=(56, 189, 248), width=2)
@@ -628,14 +640,14 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
                 draw.rectangle([(1400, 50), (1820, 110)], fill=(15, 23, 42, 220), outline=(244, 63, 94), width=2)
                 draw.text((1430, 70), "[AI-GENERATED CONTENT]", fill=(244, 63, 94), font=get_font(26))
 
-                # Caption Container
-                draw.rectangle([(100, 700), (1820, 960)], fill=(10, 15, 30, 220), outline=(56, 189, 248), width=3)
+                # Caption Container (Cleaned, No Subscribe Bar)
+                draw.rectangle([(100, 740), (1820, 1010)], fill=(10, 15, 30, 220), outline=(56, 189, 248), width=3)
 
                 # Word-by-Word Highlight Animation
                 total_words = max(len(words), 1)
                 active_word_idx = int(progress * total_words)
 
-                y_start = 730
+                y_start = 770
                 word_counter = 0
                 for line_words in lines[:4]:
                     x = 130
@@ -645,10 +657,6 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
                         x += get_text_width(font_caption, w_text + " ")
                         word_counter += 1
                     y_start += 52
-
-                # Bottom CTA Bar
-                draw.rectangle([(100, 980), (1820, 1040)], fill=(56, 189, 248, 230))
-                draw.text((650, 995), "SUBSCRIBE FOR DAILY IN-DEPTH AI COVERAGE", fill=(15, 23, 42), font=get_font(32))
 
             # Bottom Moving Progress Bar
             bar_y = h - 20 if is_short else h - 14
@@ -749,7 +757,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
             print(f"⚠️ YouTube API Error ({e.resp.status}): {e}")
         return None
     except Exception as e:
-        print(f"⚠️️ Upload Exception: {e}")
+        print(f"⚠️ Upload Exception: {e}")
         return None
 
 # ==========================================
@@ -766,7 +774,7 @@ if __name__ == "__main__":
     thumb_short = generate_thumbnail(
         short_data["title"], 
         "BREAKING SHORTS", 
-        short_data.get("thumb_prompt", "futuristic AI brain cybernetic neon"), 
+        short_data.get("thumb_prompt", "futuristic female software engineer interacting with glowing cyan AI hologram 8k"), 
         is_short=True, 
         output_file="thumb_short.png"
     )
@@ -787,7 +795,7 @@ if __name__ == "__main__":
     thumb_long = generate_thumbnail(
         long_data["title"], 
         "AI BREAKTHROUGH", 
-        long_data.get("thumb_prompt", "supercomputer server matrix glowing cyan AI brain"), 
+        long_data.get("thumb_prompt", "team of scientists surrounding supercomputer matrix glowing blue circuits 8k"), 
         is_short=False, 
         output_file="thumb_long.png"
     )
@@ -808,7 +816,7 @@ if __name__ == "__main__":
     thumb_learning = generate_thumbnail(
         learning_data["title"], 
         "AI MASTERCLASS", 
-        learning_data.get("thumb_prompt", "glowing holographic AI neural diagram classroom masterclass"), 
+        learning_data.get("thumb_prompt", "female AI professor standing in futuristic academy classroom presenting 8k"), 
         is_short=False, 
         output_file="thumb_learning.png"
     )
