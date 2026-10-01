@@ -38,7 +38,7 @@ except ImportError:
 
 import edge_tts
 from moviepy.editor import (
-    VideoClip, ImageClip, AudioFileClip, CompositeVideoClip, 
+    VideoClip, ImageClip, AudioFileClip, CompositeVideoClip,
     CompositeAudioClip, concatenate_videoclips
 )
 from googleapiclient.discovery import build
@@ -85,10 +85,10 @@ def sanitize_text(text):
 def get_trending_news_and_learning_topic():
     print("📰 Step 0: Scraping real-time AI news and selecting AI Learning topic...")
     rss_feeds = [
-        "https://techcrunch.com/category/artificial-intelligence/feed/",
-        "https://www.mittechnologyreview.com/feed/",
-        "https://feeds.arstechnica.com/arstechnica/index",
-        "https://venturebeat.com/category/ai/feed/"
+        "<https://techcrunch.com/category/artificial-intelligence/feed/>",
+        "<https://www.mittechnologyreview.com/feed/>",
+        "<https://feeds.arstechnica.com/arstechnica/index>",
+        "<https://venturebeat.com/category/ai/feed/>"
     ]
     ai_keywords = ["ai", "artificial intelligence", "nvidia", "openai", "chip", "robot", "quantum", "llm", "software agent", "neural", "deep learning", "machine learning", "anthropic", "gemini", "gpt", "model", "algorithm", "supercomputer"]
     news_items = []
@@ -103,7 +103,7 @@ def get_trending_news_and_learning_topic():
                     title = entry.get("title", "")
                     summary = entry.get("summary", "")[:300]
                     full_text = f"{title} {summary}".lower()
-                    
+
                     if any(kw in full_text for kw in ai_keywords):
                         clean_title = sanitize_text(title.replace('"', "'").replace("\n", " "))
                         clean_summary = sanitize_text(summary.replace('"', "'").replace("\n", " "))
@@ -263,7 +263,7 @@ Return ONLY a valid JSON object with this exact structure:
                 except Exception as err:
                     print(f"   ⚠️ Groq model '{model}' skipped: {err}")
         except Exception as e:
-            print(f"   ⚠️️ Groq API error: {e}")
+            print(f"   ⚠️ Groq API error: {e}")
 
     # --- PROVIDER 3: OpenRouter API ---
     if openrouter_key:
@@ -273,7 +273,7 @@ Return ONLY a valid JSON object with this exact structure:
             openrouter_models = ["google/gemini-2.0-flash-exp:free", "meta-llama/llama-3.3-70b-instruct:free", "deepseek/deepseek-r1:free"]
             for model in openrouter_models:
                 try:
-                    res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json={"model": model, "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_object"}}, timeout=20)
+                    res = requests.post("<https://openrouter.ai/api/v1/chat/completions>", headers=headers, json={"model": model, "messages": [{"role": "user", "content": prompt}], "response_format": {"type": "json_object"}}, timeout=20)
                     if res.status_code == 200:
                         content = json.loads(res.json()["choices"]["message"]["content"])
                         if isinstance(content, dict) and "short" in content and "long" in content and "learning" in content:
@@ -353,7 +353,7 @@ def get_background_music(output_file="bg_music.mp3"):
     if os.path.exists(output_file):
         return output_file
     print("🎵 Fetching background music track...")
-    url = "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=cyberpunk-tech-110391.mp3"
+    url = "<https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=cyberpunk-tech-110391.mp3>"
     try:
         res = requests.get(url, timeout=10)
         if res.status_code == 200:
@@ -387,7 +387,7 @@ def generate_procedural_background(width, height, prompt="cybertech"):
 def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, output_file="thumbnail.png"):
     width, height = (1080, 1920) if is_short else (1280, 720)
     print(f"🎨 Generating High-CTR Catchy Thumbnail ({width}x{height}) -> {output_file}...")
-    
+
     clean_visual = sanitize_text(visual_prompt) or "3D animated tech presenter glowing AI brain cyan neon dark 8k"
     seed = random.randint(10000, 999999)
 
@@ -395,7 +395,7 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
 
     # Source 1: Pollinations AI Generation (100% Royalty Free, 3D Character Prompt)
     encoded_prompt = urllib.parse.quote(f"{clean_visual}, vibrant cyberpunk lighting 3d render cinematic quality 8k")
-    img_url_pollinations = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
+    img_url_pollinations = f"<https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}>"
     try:
         res = requests.get(img_url_pollinations, timeout=8)
         if res.status_code == 200 and len(res.content) > 5000:
@@ -408,7 +408,7 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
     # Source 2: Unsplash Tech Photo Fallback (License Free)
     if base_img is None:
         try:
-            unsplash_url = f"https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w={width}&h={height}&q=80"
+            unsplash_url = f"<https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w={width}&h={height}&q=80>"
             res = requests.get(unsplash_url, timeout=8)
             if res.status_code == 200 and len(res.content) > 5000:
                 with open("thumb_bg_temp.png", "wb") as f:
@@ -453,7 +453,7 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
 
         # Translucent Glass Box
         draw.rectangle([(50, 1100), (1030, 1740)], fill=(10, 15, 30, 140), outline=border_color, width=6)
-        
+
         words = clean_title.split()
         lines, current_line = [], []
         for word in words:
@@ -534,7 +534,7 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
         # 1. Synthesize voiceover audio for this slide
         audio_path = f"voice_{prefix}_slide_{idx}.mp3"
         asyncio.run(synthesize_slide_audio(slide_text, audio_path))
-        
+
         slide_audio = AudioFileClip(audio_path)
         slide_dur = max(slide_audio.duration, 2.2)
         print(f"   Slide {idx+1}/{len(slides)}: Duration = {slide_dur:.2f}s | Badge = '{slide_badge}'")
@@ -542,7 +542,7 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
         # 2. Copyright-Safe 3D Animated Image Fetcher (Pollinations AI / Procedural)
         seed = random.randint(10000, 999999)
         encoded_prompt = urllib.parse.quote(f"{slide_prompt}, 3d character animation, vibrant cyberpunk lighting 3d render cinematic quality 8k")
-        img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
+        img_url = f"<https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}>"
         img_path = f"slide_{prefix}_{idx}.png"
 
         base_img = None
@@ -575,12 +575,12 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
 
         def make_animated_frame(t, base_pil=base_img, dur=slide_dur, w=width, h=height, badge=slide_badge):
             progress = min(t / max(dur, 0.1), 1.0)
-            
+
             # Ken Burns Continuous Motion Zoom & Pan
             scale = 1.0 + 0.18 * progress
             w_scaled, h_scaled = int(w * scale), int(h * scale)
             resized = base_pil.resize((w_scaled, h_scaled), PIL.Image.LANCZOS)
-            
+
             crop_x = int(((w_scaled - w) // 2) + (30 * progress))
             crop_y = int(((h_scaled - h) // 2) + (20 * progress))
             cropped = resized.crop((crop_x, crop_y, crop_x + w, crop_y + h)).convert("RGBA")
@@ -681,11 +681,11 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
     clean_title = sanitize_text(title)
     clean_desc = sanitize_text(description)
     print(f"🚀 Uploading {video_file} to YouTube | Title: '{clean_title}'...")
-    
+
     client_id = os.environ.get("YOUTUBE_CLIENT_ID")
     client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
     refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN")
-    
+
     if not all([client_id, client_secret, refresh_token]):
         print("⚠️ YouTube OAuth credentials not fully set in environment. Skipping live upload step.")
         return None
@@ -693,14 +693,14 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
     creds = Credentials(
         token=None,
         refresh_token=refresh_token,
-        token_uri="https://oauth2.googleapis.com/token",
+        token_uri="<https://oauth2.googleapis.com/token>",
         client_id=client_id,
         client_secret=client_secret
     )
     creds.refresh(Request())
-    
+
     youtube = build("youtube", "v3", credentials=creds)
-    
+
     full_description = f"{clean_desc[:4500]}\n\n🤖 AI CONTENT DISCLAIMER: This video features AI-synthesized narration, script analysis, and visual graphics generated for automated tech news reporting and education."
 
     body = {
@@ -715,19 +715,19 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
             "selfDeclaredMadeForKids": False
         }
     }
-    
+
     media = MediaFileUpload(video_file, chunksize=-1, resumable=True, mimetype="video/mp4")
     request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
-    
+
     try:
         response = None
         while response is None:
             status, response = request.next_chunk()
             if status:
                 print(f"   Upload Progress: {int(status.progress() * 100)}%")
-                
+
         video_id = response.get("id")
-        print(f"🎉 SUCCESS! Published live to YouTube: https://youtu.be/{video_id}")
+        print(f"🎉 SUCCESS! Published live to YouTube: <https://youtu.be/{video_id}>")
 
         if thumbnail_file and os.path.exists(thumbnail_file):
             try:
@@ -741,7 +741,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
 
     except HttpError as e:
         if "uploadLimitExceeded" in str(e):
-            print("⚠️️ YOUTUBE DAILY UPLOAD LIMIT REACHED: Uploads paused for 24 hours.")
+            print("⚠️ YOUTUBE DAILY UPLOAD LIMIT REACHED: Uploads paused for 24 hours.")
         else:
             print(f"⚠️ YouTube API Error ({e.resp.status}): {e}")
         return None
@@ -754,45 +754,45 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
 # ==========================================
 if __name__ == "__main__":
     pkg = generate_triple_scripts()
-    
+
     # 1. Render & Upload Short Video (9:16 Vertical, derived from Main News)
     print("\n--- 1. GENERATING YOUTUBE SHORT VIDEO (9:16 VERTICAL) ---")
     short_data = pkg["short"]
     short_slides = short_data.get("slides", [])
-    
+
     thumb_short = generate_thumbnail(
-        short_data["title"], 
-        "BREAKING SHORTS", 
-        short_data.get("thumb_prompt", "3D animated tech presenter glowing AI brain cyan neon dark 8k"), 
-        is_short=True, 
+        short_data["title"],
+        "BREAKING SHORTS",
+        short_data.get("thumb_prompt", "3D animated tech presenter glowing AI brain cyan neon dark 8k"),
+        is_short=True,
         output_file="thumb_short.png"
     )
-    
+
     short_file = render_multislide_video(
-        short_data["title"], 
-        short_slides, 
-        is_short=True, 
+        short_data["title"],
+        short_slides,
+        is_short=True,
         output_file="short_video.mp4"
     )
     upload_to_youtube(short_file, short_data["title"], short_data["description"], short_data["tags"], thumbnail_file=thumb_short)
-    
+
     # 2. Render & Upload Main AI News Video (16:9 Widescreen)
     print("\n--- 2. GENERATING MAIN AI NEWS VIDEO (16:9 WIDESCREEN) ---")
     long_data = pkg["long"]
     long_slides = long_data.get("slides", [])
-    
+
     thumb_long = generate_thumbnail(
-        long_data["title"], 
-        "AI BREAKTHROUGH", 
-        long_data.get("thumb_prompt", "3D animated female scientist presenting glowing cyan AI core in high tech lab 8k"), 
-        is_short=False, 
+        long_data["title"],
+        "AI BREAKTHROUGH",
+        long_data.get("thumb_prompt", "3D animated female scientist presenting glowing cyan AI core in high tech lab 8k"),
+        is_short=False,
         output_file="thumb_long.png"
     )
-    
+
     long_file = render_multislide_video(
-        long_data["title"], 
-        long_slides, 
-        is_short=False, 
+        long_data["title"],
+        long_slides,
+        is_short=False,
         output_file="long_video.mp4"
     )
     upload_to_youtube(long_file, long_data["title"], long_data["description"], long_data["tags"], thumbnail_file=thumb_long)
@@ -801,19 +801,19 @@ if __name__ == "__main__":
     print("\n--- 3. GENERATING SEPARATE AI LEARNING MASTERCLASS (16:9 WIDESCREEN, 3 MINS) ---")
     learning_data = pkg["learning"]
     learning_slides = learning_data.get("slides", [])
-    
+
     thumb_learning = generate_thumbnail(
-        learning_data["title"], 
-        "AI MASTERCLASS", 
-        learning_data.get("thumb_prompt", "3D animated female professor holding glowing holographic neural diagram masterclass 8k"), 
-        is_short=False, 
+        learning_data["title"],
+        "AI MASTERCLASS",
+        learning_data.get("thumb_prompt", "3D animated female professor holding glowing holographic neural diagram masterclass 8k"),
+        is_short=False,
         output_file="thumb_learning.png"
     )
-    
+
     learning_file = render_multislide_video(
-        learning_data["title"], 
-        learning_slides, 
-        is_short=False, 
+        learning_data["title"],
+        learning_slides,
+        is_short=False,
         output_file="learning_video.mp4"
     )
     upload_to_youtube(learning_file, learning_data["title"], learning_data["description"], learning_data["tags"], thumbnail_file=thumb_learning)
