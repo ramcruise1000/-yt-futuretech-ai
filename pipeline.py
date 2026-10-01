@@ -53,10 +53,12 @@ def get_font(size):
 def sanitize_text(text):
     if not text:
         return ""
-    # Completely remove "Ed 222", "Ed. #222", "(Ed. #123)" edition tags safely without regex group syntax errors
+    # Completely remove "Ed 222", "Ed. #222", "(Ed. #123)", "Edition 222" edition tags safely without regex group syntax errors
     clean = re.sub(r'\\(?\b(?:Ed|Edition)\.?\s*#?\s*\d+\\)?', '', str(text), flags=re.IGNORECASE)
     # Strip non-ASCII characters to avoid PIL latin-1 encoder crash
     clean = re.sub(r'[^\x00-\x7F]+', '', clean).strip()
+    # Clean up double spaces left behind
+    clean = re.sub(r'\s+', ' ', clean)
     return clean
 
 # ==========================================
@@ -604,7 +606,7 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
             final_audio = CompositeAudioClip([full_video.audio, bg_music])
             full_video = full_video.set_audio(final_audio)
         except Exception as e:
-            print(f"   ⚠️️ Music overlay note: {e}")
+            print(f"   ⚠️ Music overlay note: {e}")
 
     full_video.write_videofile(output_file, fps=24, codec="libx264", audio_codec="aac")
     print(f"   ✅ Synchronized Motion Video rendered: {output_file}")
@@ -623,7 +625,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
     refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN")
     
     if not all([client_id, client_secret, refresh_token]):
-        print("⚠️ YouTube OAuth credentials not fully set in environment. Skipping live upload step.")
+        print("⚠️️ YouTube OAuth credentials not fully set in environment. Skipping live upload step.")
         return None
 
     creds = Credentials(
@@ -683,7 +685,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
             print("   Your video was generated and rendered successfully, but YouTube paused uploads for today.")
             print("   The daily upload limit will reset automatically in 24 hours!")
         else:
-            print(f"⚠️ YouTube API Error ({e.resp.status}): {e}")
+            print(f"⚠️️ YouTube API Error ({e.resp.status}): {e}")
         return None
     except Exception as e:
         print(f"⚠️ Upload Exception: {e}")
