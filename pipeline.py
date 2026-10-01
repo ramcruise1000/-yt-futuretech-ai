@@ -111,7 +111,6 @@ def get_trending_news_and_learning_topic():
         }]
 
     selected_item = random.choice(news_items)
-    news_context = f"Headline: {selected_item['title']} | Summary: {selected_item['summary']}"
 
     learning_topics = [
         "How Transformer Neural Networks Work (Self-Attention & Tokens)",
@@ -132,7 +131,7 @@ def get_trending_news_and_learning_topic():
 # STEP 1: Multi-Provider AI Script Generation Engine
 # ==========================================
 def generate_triple_scripts():
-    print("🧠 Step 1: Generating Short, Long News, and Separate AI Learning Masterclass Packages...")
+    print("🧠 Step 1: Generating Short, Long News, and Separate 2-3 Min AI Learning Masterclass Packages...")
     gemini_key = os.environ.get("GEMINI_API_KEY")
     groq_key = os.environ.get("GROQ_API_KEY")
     openrouter_key = os.environ.get("OPENROUTER_API_KEY")
@@ -147,9 +146,9 @@ Learning Topic: {learning_topic}
 
 CRITICAL DIRECTIVES:
 Generate THREE distinct video content packages:
-1. "short": Vertical 9:16 Short DERIVED DIRECTLY from the main news story (5 slides, ~45s spoken audio, total 90-120 words).
+1. "short": Vertical 9:16 Short DERIVED DIRECTLY from the main AI news story (5 slides, ~40-50s spoken audio, total 90-120 words).
 2. "long": Widescreen 16:9 Main AI News Video explaining the latest news in detail (8 slides, ~1.5-2 mins spoken audio, total 250-300 words).
-3. "learning": SEPARATE Widescreen 16:9 Educational AI Slideshow Lesson explaining '{learning_topic}' step-by-step (10 slides, ~2.5-3 mins spoken audio, total 350-450 words).
+3. "learning": SEPARATE Widescreen 16:9 Educational AI Masterclass Lesson explaining '{learning_topic}' step-by-step (11 slides, ~2.5-3 mins spoken audio, total 350-450 words focusing exclusively on this single AI topic).
 
 IMPORTANT: Do NOT include any edition numbers, run IDs, or 'Ed. #' tags in titles or descriptions!
 
@@ -185,21 +184,22 @@ Return ONLY a valid JSON object with this exact structure:
     ]
   }},
   "learning": {{
-    "title": "AI EXPLAINED: {learning_topic} | FutureTech Pulse",
+    "title": "AI EXPLAINED: {learning_topic} (3-Min Masterclass) | FutureTech Pulse",
     "description": "Master {learning_topic} step-by-step in this 2-3 minute educational AI slideshow lesson.",
     "thumb_prompt": "glowing holographic neural network diagram learning class technical 8k render",
     "tags": ["AI Learning", "AI Explained", "Machine Learning", "Tech Tutorial", "FutureTech"],
     "slides": [
-      {{"text": "Welcome to FutureTech AI Academy. Today we are breaking down {learning_topic} step-by-step.", "prompt": "futuristic holographic academy classroom glowing neural diagram 8k", "badge": "LESSON OVERVIEW"}},
-      {{"text": "To understand this concept, we first look at how traditional data processing differs from modern neural representations.", "prompt": "data flow matrix comparison traditional vs neural networks cyan", "badge": "CORE CONCEPT"}},
-      {{"text": "At the core of this system lies an architecture designed to transform raw input tokens into mathematical vector embeddings.", "prompt": "vector embeddings space 3d spatial data nodes glowing blue", "badge": "VECTOR EMBEDDINGS"}},
-      {{"text": "These mathematical vectors allow the neural model to capture contextual relationships and semantic meaning instantaneously.", "prompt": "synaptic neural connections firing glowing nodes network", "badge": "CONTEXTUAL LOGIC"}},
-      {{"text": "Next, multi-head attention mechanisms weigh the importance of every token relative to every other token in the sequence.", "prompt": "multi head attention mechanism visualization glowing beams", "badge": "ATTENTION LAYERS"}},
-      {{"text": "This parallel computation allows the model to scale efficiently across billions of parameters without losing context.", "prompt": "supercomputer parallel processing GPU cluster neon trails", "badge": "PARALLEL SCALING"}},
-      {{"text": "During the training phase, backpropagation continually adjusts synaptic weights to minimize loss and optimize predictions.", "prompt": "gradient descent mathematical surface optimization 3d graph", "badge": "WEIGHT OPTIMIZATION"}},
-      {{"text": "In practical applications, this enables autonomous AI agents to reason, plan, and execute complex workflows seamlessly.", "prompt": "autonomous AI software agent working on holographic dashboard", "badge": "REAL WORLD AGENTS"}},
-      {{"text": "Understanding these core principles gives you a massive advantage as generative AI transforms software engineering globally.", "prompt": "futuristic software developer collaborating with AI hologram", "badge": "STRATEGIC IMPACT"}},
-      {{"text": "Subscribe to FutureTech Pulse for daily 2-minute AI learning lessons and breaking technology masterclasses!", "prompt": "futuristic neon academy subscribe button glowing circuit", "badge": "SUBSCRIBE FOR LESSONS"}}
+      {{"text": "Welcome to FutureTech AI Academy. In this 3-minute lesson, we are breaking down {learning_topic} step-by-step.", "prompt": "futuristic holographic academy classroom glowing neural diagram 8k", "badge": "LESSON OVERVIEW"}},
+      {{"text": "To master this concept, we first look at how traditional data algorithms differ from high-dimensional neural representations.", "prompt": "data flow matrix comparison traditional vs neural networks cyan", "badge": "CORE FOUNDATION"}},
+      {{"text": "At the heart of this system lies an encoder mechanism that transforms raw input tokens into mathematical vector embeddings.", "prompt": "vector embeddings space 3d spatial data nodes glowing blue", "badge": "VECTOR EMBEDDINGS"}},
+      {{"text": "These mathematical vectors allow the neural model to capture semantic relationships across thousands of dimensions simultaneously.", "prompt": "synaptic neural connections firing glowing nodes network", "badge": "SEMANTIC MATRIX"}},
+      {{"text": "Next, multi-head self-attention mechanisms calculate contextual importance weights for every token relative to the overall sequence.", "prompt": "multi head attention mechanism visualization glowing beams", "badge": "ATTENTION LAYERS"}},
+      {{"text": "By computing these attention scores in parallel, modern GPUs scale computation across billions of parameters seamlessly.", "prompt": "supercomputer parallel processing GPU cluster neon trails", "badge": "PARALLEL COMPUTATION"}},
+      {{"text": "During the training phase, mathematical loss functions evaluate model predictions and guide gradient descent optimization.", "prompt": "gradient descent mathematical surface optimization 3d graph", "badge": "GRADIENT DESCENT"}},
+      {{"text": "Backpropagation then calculates partial derivatives, updating synaptic weights across all neural network layers continuously.", "prompt": "backpropagation neural network weight updates glowing nodes", "badge": "WEIGHT UPDATES"}},
+      {{"text": "In production environments, this enables autonomous software agents to reason, plan, and execute complex workflows independently.", "prompt": "autonomous AI software agent working on holographic dashboard", "badge": "REAL WORLD AGENTS"}},
+      {{"text": "Understanding these architectural foundations gives you a massive strategic edge as artificial intelligence transforms software engineering globally.", "prompt": "futuristic software developer collaborating with AI hologram", "badge": "STRATEGIC IMPACT"}},
+      {{"text": "Subscribe to FutureTech Pulse for daily 3-minute educational AI masterclasses and breaking technology lessons!", "prompt": "futuristic neon academy subscribe button glowing circuit", "badge": "SUBSCRIBE FOR LESSONS"}}
     ]
   }}
 }}"""
@@ -241,7 +241,7 @@ Return ONLY a valid JSON object with this exact structure:
                         model=model,
                         messages=[{"role": "user", "content": prompt}],
                         response_format={"type": "json_object"},
-                        max_tokens=2500
+                        max_tokens=2800
                     )
                     raw_text = completion.choices.message.content.strip()
                     content = json.loads(raw_text)
@@ -308,20 +308,22 @@ Return ONLY a valid JSON object with this exact structure:
             ]
         },
         "learning": {
-            "title": f"AI EXPLAINED: {learning_topic} (2-Minute Masterclass) | FutureTech Pulse",
+            "title": f"AI EXPLAINED: {learning_topic} (3-Min Masterclass) | FutureTech Pulse",
             "description": f"Master the mechanics of {learning_topic} in this 2-3 minute educational slideshow lesson.",
             "thumb_prompt": "glowing holographic AI agent brain learning diagram masterclass cyan neon 8k",
             "tags": ["AI Learning", "AI Explained", "Machine Learning", "Tech Tutorial", "FutureTech"],
             "slides": [
-                {"text": f"Welcome to FutureTech AI Academy. Today we are breaking down {learning_topic} step-by-step.", "prompt": "futuristic holographic academy classroom glowing neural diagram 8k", "badge": "LESSON OVERVIEW"},
-                {"text": "Unlike traditional static algorithms, modern neural architectures process contextual data representations continuously.", "prompt": "continuous decision loop flowchart glowing neon cyan data streams", "badge": "NEURAL FOUNDATIONS"},
-                {"text": "The cycle begins when input sequences are converted into high-dimensional mathematical vector embeddings.", "prompt": "vector embeddings space 3d spatial data nodes glowing blue", "badge": "VECTOR EMBEDDINGS"},
-                {"text": "Next, multi-head self-attention mechanisms weigh the importance of every token relative to the overall sequence.", "prompt": "multi head attention mechanism visualization glowing beams", "badge": "ATTENTION MECHANISM"},
-                {"text": "This parallel computation allows models to scale across billions of parameters without losing contextual coherence.", "prompt": "supercomputer parallel processing GPU cluster neon trails", "badge": "PARALLEL SCALING"},
-                {"text": "During training, backpropagation continually adjusts synaptic weights to minimize loss and optimize accuracy.", "prompt": "gradient descent mathematical surface optimization 3d graph", "badge": "WEIGHT OPTIMIZATION"},
-                {"text": "In practical applications, this architecture enables autonomous AI agents to reason, plan, and execute tasks.", "prompt": "autonomous AI software agent working on holographic dashboard", "badge": "REAL WORLD AGENTS"},
-                {"text": "Understanding these core principles gives you a massive strategic advantage as generative AI evolves globally.", "prompt": "futuristic software developer collaborating with AI hologram", "badge": "STRATEGIC IMPACT"},
-                {"text": "Subscribe to FutureTech Pulse for daily 2-minute AI learning slideshows and technology masterclasses!", "prompt": "futuristic neon academy subscribe button glowing circuit", "badge": "SUBSCRIBE FOR LESSONS"}
+                {"text": f"Welcome to FutureTech AI Academy. In this 3-minute lesson, we are breaking down {learning_topic} step-by-step.", "prompt": f"futuristic holographic academy classroom explaining {learning_topic} glowing neural diagram 8k", "badge": "LESSON OVERVIEW"},
+                {"text": "To master this concept, we first look at how traditional data algorithms differ from high-dimensional neural representations.", "prompt": f"data flow matrix comparison {learning_topic} glowing cyan data streams", "badge": "CORE FOUNDATION"},
+                {"text": "At the heart of this system lies an encoder mechanism that transforms raw input tokens into mathematical vector embeddings.", "prompt": "vector embeddings space 3d spatial data nodes glowing blue", "badge": "VECTOR EMBEDDINGS"},
+                {"text": "These mathematical vectors allow the neural model to capture semantic relationships across thousands of dimensions simultaneously.", "prompt": "synaptic neural connections firing glowing nodes network", "badge": "SEMANTIC MATRIX"},
+                {"text": "Next, multi-head self-attention mechanisms calculate contextual importance weights for every token relative to the overall sequence.", "prompt": "multi head attention mechanism visualization glowing beams", "badge": "ATTENTION LAYERS"},
+                {"text": "By computing these attention scores in parallel, modern GPUs scale computation across billions of parameters seamlessly.", "prompt": "supercomputer parallel processing GPU cluster neon trails", "badge": "PARALLEL COMPUTATION"},
+                {"text": "During the training phase, mathematical loss functions evaluate model predictions and guide gradient descent optimization.", "prompt": "gradient descent mathematical surface optimization 3d graph", "badge": "GRADIENT DESCENT"},
+                {"text": "Backpropagation then calculates partial derivatives, updating synaptic weights across all neural network layers continuously.", "prompt": "backpropagation neural network weight updates glowing nodes", "badge": "WEIGHT UPDATES"},
+                {"text": "In production environments, this enables autonomous software agents to reason, plan, and execute complex workflows independently.", "prompt": "autonomous AI software agent working on holographic dashboard", "badge": "REAL WORLD AGENTS"},
+                {"text": "Understanding these architectural foundations gives you a massive strategic edge as artificial intelligence transforms software engineering globally.", "prompt": "futuristic software developer collaborating with AI hologram", "badge": "STRATEGIC IMPACT"},
+                {"text": "Subscribe to FutureTech Pulse for daily 3-minute educational AI masterclasses and breaking technology lessons!", "prompt": "futuristic neon academy subscribe button glowing circuit", "badge": "SUBSCRIBE FOR LESSONS"}
             ]
         }
     }
@@ -368,7 +370,7 @@ def generate_procedural_background(width, height, prompt="cybertech"):
     return img.convert("RGB")
 
 # ==========================================
-# STEP 3: Multi-Source High-CTR Catchy Thumbnail Generator
+# STEP 3: Copyright-Safe Multi-Source High-CTR Catchy Thumbnail Generator
 # ==========================================
 def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, output_file="thumbnail.png"):
     width, height = (1080, 1920) if is_short else (1280, 720)
@@ -379,7 +381,7 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
 
     base_img = None
 
-    # Source 1: Pollinations AI Generation
+    # Source 1: Pollinations AI Generation (100% Royalty Free)
     encoded_prompt = urllib.parse.quote(f"{clean_visual}, vibrant cyberpunk lighting 3d render cinematic quality 8k")
     img_url_pollinations = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
     try:
@@ -391,7 +393,7 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
     except Exception as e:
         print(f"   ⚠️ Pollinations thumbnail note: {e}")
 
-    # Source 2: Unsplash Tech Photo Fallback
+    # Source 2: Unsplash Tech Photo Fallback (License Free)
     if base_img is None:
         try:
             unsplash_url = f"https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w={width}&h={height}&q=80"
@@ -525,7 +527,7 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
         slide_dur = max(slide_audio.duration, 2.2)
         print(f"   Slide {idx+1}/{len(slides)}: Duration = {slide_dur:.2f}s | Badge = '{slide_badge}'")
 
-        # 2. 4-Tier Background Image Fetcher
+        # 2. Copyright-Safe Image Fetcher (Pollinations AI / Procedural)
         seed = random.randint(10000, 999999)
         encoded_prompt = urllib.parse.quote(f"{slide_prompt}, dark cyber aesthetic 8k high quality render")
         img_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width={width}&height={height}&nologo=true&seed={seed}"
@@ -544,7 +546,6 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
         if base_img is None:
             base_img = generate_procedural_background(width, height, slide_prompt)
 
-        # Save base frame
         base_img.save(img_path)
 
         # 3. Dynamic Motion Frame Generator with Word-by-Word Highlight Captions
@@ -604,7 +605,7 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
                         text_color = (250, 204, 21) if word_counter <= active_word_idx else (200, 215, 235)
                         draw.text((x, y_start), w_text + " ", fill=text_color, font=font_caption)
                         bbox = font_caption.getbbox(w_text + " ")
-                        x += (bbox[2] - bbox[0])
+                        x += (bbox - bbox)
                         word_counter += 1
                     y_start += 58
 
@@ -636,7 +637,7 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
                         text_color = (250, 204, 21) if word_counter <= active_word_idx else (220, 230, 245)
                         draw.text((x, y_start), w_text + " ", fill=text_color, font=font_caption)
                         bbox = font_caption.getbbox(w_text + " ")
-                        x += (bbox[2] - bbox[0])
+                        x += (bbox - bbox)
                         word_counter += 1
                     y_start += 52
 
@@ -732,7 +733,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
                 youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_file)).execute()
                 print("   ✅ Custom thumbnail published successfully!")
             except Exception as e:
-                print(f"   ⚠️️ Could not set thumbnail ({e}). Ensure channel is phone-verified.")
+                print(f"   ⚠️ Could not set thumbnail ({e}). Ensure channel is phone-verified.")
 
         return video_id
 
@@ -753,6 +754,7 @@ if __name__ == "__main__":
     pkg = generate_triple_scripts()
     
     # 1. Render & Upload Short Video (9:16 Vertical, derived from Main News)
+    print("\n--- 1. GENERATING YOUTUBE SHORT VIDEO (9:16 VERTICAL) ---")
     short_data = pkg["short"]
     short_slides = short_data.get("slides", [])
     
@@ -773,6 +775,7 @@ if __name__ == "__main__":
     upload_to_youtube(short_file, short_data["title"], short_data["description"], short_data["tags"], thumbnail_file=thumb_short)
     
     # 2. Render & Upload Main AI News Video (16:9 Widescreen)
+    print("\n--- 2. GENERATING MAIN AI NEWS VIDEO (16:9 WIDESCREEN) ---")
     long_data = pkg["long"]
     long_slides = long_data.get("slides", [])
     
@@ -792,7 +795,8 @@ if __name__ == "__main__":
     )
     upload_to_youtube(long_file, long_data["title"], long_data["description"], long_data["tags"], thumbnail_file=thumb_long)
 
-    # 3. Render & Upload Separate AI Learning Video (16:9 Educational Masterclass)
+    # 3. Render & Upload Separate AI Learning Masterclass Video (16:9 Widescreen, 2-3 Mins)
+    print("\n--- 3. GENERATING SEPARATE AI LEARNING MASTERCLASS (16:9 WIDESCREEN, 2-3 MINS) ---")
     learning_data = pkg["learning"]
     learning_slides = learning_data.get("slides", [])
     
