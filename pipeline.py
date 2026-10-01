@@ -1,4 +1,4 @@
-mport os
+import os
 import re
 import json
 import time
@@ -53,10 +53,13 @@ def get_font(size):
 def sanitize_text(text):
     if not text:
         return ""
-    # Safely strip "(Ed. #123)", "Ed 222", "Edition 99" without regex syntax errors
-    clean = re.sub(r'\\(?\b(?:Ed|Edition)\.?\s*#?\s*\d+\b\\)?', '', str(text), flags=re.IGNORECASE)
+    # Strip edition tags like "Ed. #123", "Edition 222", "Ed 99"
+    clean = re.sub(r'\b(?:Ed|Edition)\.?\s*#?\s*\d+\b', '', str(text), flags=re.IGNORECASE)
+    # Remove empty parentheses left behind
     clean = re.sub(r'\\(\s*\\)', '', clean)
+    # Strip non-ASCII characters to avoid PIL encoder crashes
     clean = re.sub(r'[^\x00-\x7F]+', '', clean).strip()
+    # Normalize extra spaces
     clean = re.sub(r'\s+', ' ', clean)
     return clean
 
@@ -228,7 +231,7 @@ Return ONLY a valid JSON object with this exact structure:
                         print(f"   ✅ Groq ({model}) success!")
                         return content
                 except Exception as err:
-                    print(f"   ⚠️️ Groq model '{model}' skipped: {err}")
+                    print(f"   ⚠️ Groq model '{model}' skipped: {err}")
         except Exception as e:
             print(f"   ⚠️ Groq API error: {e}")
 
@@ -684,7 +687,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
             print("   Your video was generated and rendered successfully, but YouTube paused uploads for today.")
             print("   The daily upload limit will reset automatically in 24 hours!")
         else:
-            print(f"⚠️️ YouTube API Error ({e.resp.status}): {e}")
+            print(f"⚠️ YouTube API Error ({e.resp.status}): {e}")
         return None
     except Exception as e:
         print(f"⚠️ Upload Exception: {e}")
