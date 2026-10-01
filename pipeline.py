@@ -210,7 +210,6 @@ Return ONLY a valid JSON object with this exact structure:
         try:
             print("   [Provider 2] Switching to Groq API...")
             groq_client = Groq(api_key=groq_key)
-            # Only active supported models on Groq
             groq_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 
             for model in groq_models:
@@ -605,7 +604,7 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
             final_audio = CompositeAudioClip([full_video.audio, bg_music])
             full_video = full_video.set_audio(final_audio)
         except Exception as e:
-            print(f"   ⚠️ Music overlay note: {e}")
+            print(f"   ⚠️️ Music overlay note: {e}")
 
     full_video.write_videofile(output_file, fps=24, codec="libx264", audio_codec="aac")
     print(f"   ✅ Synchronized Motion Video rendered: {output_file}")
@@ -674,7 +673,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
                 youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_file)).execute()
                 print("   ✅ Custom thumbnail published successfully!")
             except Exception as e:
-                print(f"   ⚠️️ Could not set thumbnail ({e}). Ensure YouTube channel is phone-verified for custom thumbnails.")
+                print(f"   ⚠️ Could not set thumbnail ({e}). Ensure YouTube channel is phone-verified for custom thumbnails.")
 
         return video_id
 
