@@ -62,6 +62,13 @@ def get_font(size):
                 pass
     return PIL.ImageFont.load_default()
 
+# Helper function to calculate text width safely
+def get_text_width(font, text):
+    if hasattr(font, 'getlength'):
+        return int(font.getlength(text))
+    bbox = font.getbbox(text)
+    return bbox[2] - bbox[0]
+
 # Helper function to sanitize text strictly for PIL & YouTube API
 def sanitize_text(text):
     if not text:
@@ -102,7 +109,7 @@ def get_trending_news_and_learning_topic():
                         clean_summary = sanitize_text(summary.replace('"', "'").replace("\n", " "))
                         news_items.append({"title": clean_title, "summary": clean_summary})
         except Exception as e:
-            print(f"   ⚠️ RSS Feed error ({url}): {e}")
+            print(f"   ⚠️️ RSS Feed error ({url}): {e}")
 
     if not news_items:
         news_items = [{
@@ -208,7 +215,7 @@ Return ONLY a valid JSON object with this exact structure:
     if gemini_key and genai:
         try:
             client = genai.Client(api_key=gemini_key)
-            gemini_models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+            gemini_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest"]
             for g_model in gemini_models:
                 try:
                     print(f"   [Provider 1] Gemini API trying model '{g_model}'...")
@@ -232,7 +239,7 @@ Return ONLY a valid JSON object with this exact structure:
         try:
             print("   [Provider 2] Switching to Groq API...")
             groq_client = Groq(api_key=groq_key)
-            groq_models = ["llama-3.3-70b-versatile", "llama3-70b-8192", "llama3-8b-8192", "mixtral-8x7b-32768"]
+            groq_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 
             for model in groq_models:
                 try:
@@ -604,8 +611,7 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
                     for w_text in line_words:
                         text_color = (250, 204, 21) if word_counter <= active_word_idx else (200, 215, 235)
                         draw.text((x, y_start), w_text + " ", fill=text_color, font=font_caption)
-                        bbox = font_caption.getbbox(w_text + " ")
-                        x += (bbox - bbox)
+                        x += get_text_width(font_caption, w_text + " ")
                         word_counter += 1
                     y_start += 58
 
@@ -636,8 +642,7 @@ def render_multislide_video(title_text, slides, is_short=True, output_file="vide
                     for w_text in line_words:
                         text_color = (250, 204, 21) if word_counter <= active_word_idx else (220, 230, 245)
                         draw.text((x, y_start), w_text + " ", fill=text_color, font=font_caption)
-                        bbox = font_caption.getbbox(w_text + " ")
-                        x += (bbox - bbox)
+                        x += get_text_width(font_caption, w_text + " ")
                         word_counter += 1
                     y_start += 52
 
@@ -744,7 +749,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
             print(f"⚠️ YouTube API Error ({e.resp.status}): {e}")
         return None
     except Exception as e:
-        print(f"⚠️ Upload Exception: {e}")
+        print(f"⚠️️ Upload Exception: {e}")
         return None
 
 # ==========================================
