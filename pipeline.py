@@ -1,4 +1,4 @@
-import os
+mport os
 import re
 import json
 import time
@@ -55,9 +55,8 @@ def sanitize_text(text):
         return ""
     # Safely strip "(Ed. #123)", "Ed 222", "Edition 99" without regex syntax errors
     clean = re.sub(r'\\(?\b(?:Ed|Edition)\.?\s*#?\s*\d+\b\\)?', '', str(text), flags=re.IGNORECASE)
-    # Strip non-ASCII characters to avoid PIL encoder issues
+    clean = re.sub(r'\\(\s*\\)', '', clean)
     clean = re.sub(r'[^\x00-\x7F]+', '', clean).strip()
-    # Normalize extra spaces
     clean = re.sub(r'\s+', ' ', clean)
     return clean
 
@@ -351,7 +350,7 @@ def generate_thumbnail(title_text, badge_text, visual_prompt, is_short=False, ou
                 f.write(res.content)
             base_img = PIL.Image.open("thumb_bg_temp.png").convert("RGBA").resize((width, height))
     except Exception as e:
-        print(f"   ⚠️ Pollinations thumbnail note: {e}")
+        print(f"   ⚠️️ Pollinations thumbnail note: {e}")
 
     # Source 2: Unsplash Tech Photo Fallback
     if base_img is None:
@@ -675,7 +674,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
                 youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_file)).execute()
                 print("   ✅ Custom thumbnail published successfully!")
             except Exception as e:
-                print(f"   ⚠️️ Could not set thumbnail ({e}). Ensure YouTube channel is phone-verified for custom thumbnails.")
+                print(f"   ⚠️ Could not set thumbnail ({e}). Ensure YouTube channel is phone-verified for custom thumbnails.")
 
         return video_id
 
@@ -685,7 +684,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
             print("   Your video was generated and rendered successfully, but YouTube paused uploads for today.")
             print("   The daily upload limit will reset automatically in 24 hours!")
         else:
-            print(f"⚠️ YouTube API Error ({e.resp.status}): {e}")
+            print(f"⚠️️ YouTube API Error ({e.resp.status}): {e}")
         return None
     except Exception as e:
         print(f"⚠️ Upload Exception: {e}")
