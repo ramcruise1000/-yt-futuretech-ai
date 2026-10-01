@@ -49,11 +49,11 @@ def get_font(size):
                 pass
     return PIL.ImageFont.load_default()
 
-# Helper function to sanitize text strictly for PIL & YouTube API (strips non-ASCII & removes "Ed 222" / edition tags)
+# Helper function to sanitize text strictly for PIL & YouTube API
 def sanitize_text(text):
     if not text:
         return ""
-    # Completely remove "Ed 222", "Ed. #222", "(Ed. #123)", "Edition 222" edition tags safely without regex group syntax errors
+    # Safely remove "(Ed. #123)", "Ed 222", "Edition #99" without regex syntax errors
     clean = re.sub(r'\\(?\b(?:Ed|Edition)\.?\s*#?\s*\d+\\)?', '', str(text), flags=re.IGNORECASE)
     # Strip non-ASCII characters to avoid PIL latin-1 encoder crash
     clean = re.sub(r'[^\x00-\x7F]+', '', clean).strip()
@@ -625,7 +625,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
     refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN")
     
     if not all([client_id, client_secret, refresh_token]):
-        print("⚠️️ YouTube OAuth credentials not fully set in environment. Skipping live upload step.")
+        print("⚠️ YouTube OAuth credentials not fully set in environment. Skipping live upload step.")
         return None
 
     creds = Credentials(
@@ -685,7 +685,7 @@ def upload_to_youtube(video_file, title, description, tags, thumbnail_file=None)
             print("   Your video was generated and rendered successfully, but YouTube paused uploads for today.")
             print("   The daily upload limit will reset automatically in 24 hours!")
         else:
-            print(f"⚠️️ YouTube API Error ({e.resp.status}): {e}")
+            print(f"⚠️ YouTube API Error ({e.resp.status}): {e}")
         return None
     except Exception as e:
         print(f"⚠️ Upload Exception: {e}")
