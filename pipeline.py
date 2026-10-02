@@ -1,6 +1,6 @@
 # Complete Updated pipeline.py
 
-```python
+
 import os
 import re
 import json
@@ -827,5 +827,5 @@ if __name__ == "__main__":
         output_file="learning_video.mp4"
     )
     upload_to_youtube(learning_file, learning_data["title"], learning_data["description"], learning_data["tags"], thumbnail_file=thumb_learning)
-```
+
 
