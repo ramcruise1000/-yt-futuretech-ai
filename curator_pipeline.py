@@ -139,10 +139,10 @@ def fetch_viral_12h_ai_content():
                             "description": snippet.get("description", ""),
                             "published_at": snippet.get("publishedAt", ""),
                             "license_type": "Transformative Fair Use Commentary",
-                            "legal_note": "Original news breakdown & commentary under Fair Use (17 U.S.C. £ 107)."
+                            "legal_note": "Original news breakdown & commentary under Fair Use (17 U.S.C. Section 107)."
                         })
         except Exception as e:
-            print(f"   ⚆ YouQube API Search note: {e}")
+            print(f"   ⚆ YouTube API Search note: {e}")
 
     # 2. RSS / Web Trend Fallback (if API search returned no items)
     if not viral_items:
@@ -208,7 +208,8 @@ def generate_curation_script(viral_target):
     desc_orig = viral_target["description"][:300]
     license_type = viral_target["license_type"]
     
-    prompt = f"""You are a top tech journalist creating a viral YouTube Short (40-45 seconds) analyzing a viral AI video that exploded in the last 12 hours.
+    clean_target_short = sanitize_text(title_orig)[:30]
+    prompt = """You are a top tech journalist creating a viral YouTube Short (40-45 seconds) analyzing a viral AI video that exploded in the last 12 hours.
 
 VIRAL TARGET DATA:
 - Original Title: "{title_orig}"
@@ -223,37 +224,43 @@ RULES:
 4. Include strong hook title, description with channel credit, tags, and badge text.
 
 Return ONLY valid JSON in this EXACT structure:
-{
+{{
   "title": "VIRAL 12H AI: [Catchy Title] #Shorts",
   "description": "Explaining the viral AI breakthrough from {channel_orig}...",
   "tags": ["AI", "ArtificialIntelligence", "Shorts", "TechNews", "ViralAI"],
   "badge_text": "12H VIRAL BREAKDOWN",
   "slides": [
-    {
+    {{
       "badge": "VIRAL 12H UPDATE",
       "text": "A massive AI breakthrough just went viral in the last 12 hours from {channel_orig}!",
       "highlight_word": "breakthrough"
-    },
-    {
+    }},
+    {{
       "badge": "KEY INNOVATION",
-      "text": "Here is why everyone is talking about {title_orig[:30]} and what it changes.",
+      "text": "Here is why everyone is talking about {clean_target_short} and what it changes.",
       "highlight_word": "innovative"
-    },
-    {
+    }},
+    {{
       "badge": "THE IMPACT",
       "text": "This technology automates complex workflows in seconds, disrupting traditional tools.",
       "highlight_word": "disrupting"
-    },
-    {
+    }},
+    {{
       "badge": "VERDICT",
       "text": "Subscribe to FutureTech AI for daily 12-hour viral breakdowns as they happen!",
       "highlight_word": "Subscribe"
-    }
+    }}
   ]
-}
-"""
+}}
+""".format(
+        title_orig=title_orig,
+        channel_orig=channel_orig,
+        desc_orig=desc_orig,
+        license_type=license_type,
+        clean_target_short=clean_target_short
+    )
     
-    gemiji_key = os.environ.get("GEMINI_API_KEY")
+    gemini_key = os.environ.get("GEMINI_API_KEY")
     if gemini_key and genai:
         try:
             client = genai.Client(api_key=gemini_key)
@@ -279,18 +286,18 @@ Return ONLY valid JSON in this EXACT structure:
             if completion.choices:
                 return json.loads(completion.choices[0].message.content)
         except Exception as e:
-            print(f"   ⚆ Groq script generation note: {eu}")
+            print(f"   ⚆ Groq script generation note: {e}")
 
     clean_target = sanitize_text(title_orig)
     return {
-        "title": f"VIRAL 12H UPDATE: {clean_target[:00]} #Shorts",
+        "title": f"VIRAL 12H UPDATE: {clean_target[:50]} #Shorts",
         "description": f"Breaking down the viral AI breakthrough from {channel_orig} in the last 12 hours. Original Creator: {channel_orig} ({viral_target['url']}).",
         "tags": ["AI", "TechNews", "ViralAI", "Shorts", "ArtificialIntelligence"],
         "badge_text": "12H VIRAL BREAKDOWN",
         "slides": [
             {
                 "badge": "VIRAL 12H UPDATE",
-                "text": f"A major AI videor just went viral in the last 12 hours created by {channel_orig}.",
+                "text": f"A major AI video just went viral in the last 12 hours created by {channel_orig}.",
                 "highlight_word": "viral"
             },
             {
@@ -563,7 +570,7 @@ def render_curated_short_video(curated_data, viral_target, output_file="short_cu
     }
     
     media = MediaFileUpload(video_file, chunksize=-1, resumable=True, mimetype="video/mp4")
-    request = youtube.videos().insert(part="snippet, status", body=body, media_body=media)
+    request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
     
     response = None
     while response is None:
@@ -584,43 +591,7 @@ def render_curated_short_video(curated_data, viral_target, output_file="short_cu
 
     return video_id
 
-# =========================================
-# MAIN EXECUTION PIPELINE
-# ========================================
-def main():
-    print("======================================================")
-    print(" STARTING VIRAL 12-HOUR AI CURATOR PIPELINE")
-    print("======================================================")
-    
-    viral_target = fetch_viral_12h_ai_content()
-    curated_data = generate_curation_script(viral_target)
-    
-    thumb_file = generate_curated_thumbnail(
-        title_text=curated_data.get("title", "VIRAL 12H AI BREAKTHROUGH"),
-        badge_text=curated_data.get("badge_text", "12H VIRAL BREAKDOWN"),
-        source_channel=viral_target.get("channel", "Original Creator")
-    )
-    
-    video_file = render_curated_short_video(
-        curated_data=curated_data,
-        viral_target=viral_target
-    )
-    
-    upload_curated_to_youtube(
-        video_file=video_file,
-        title=curated_data.get("title", "VIRAL 12H AI BREAKTHROUGH"),
-        description=curated_data.get("description", "Viral AI news breakdown."),
-        tags=curated_data.get("tags", ["AI", "Shorts"]),
-        source_target=viral_target,
-        thumbnail_file=thumb_file
-    )
-    
-    print("======================================================")
-    print("✅ VIRAL 12H AI CURATOR PIPELINE COMPLETE")
-    print("======================================================")
 
-if __name__ == "__main__":
-    main()
 
 # ==========================================
 # STEP 6: YouTube Upload with Legal Attribution
@@ -684,7 +655,7 @@ Narrated using AI synthesis and produced with automated technical curation tools
     }
     
     media = MediaFileUpload(video_file, chunksize=-1, resumable=True, mimetype="video/mp4")
-    request = youtube.videos().insert(part="snippet, status", body=body, media_body=media)
+    request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
     
     response = None
     while response is None:
