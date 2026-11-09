@@ -1,5 +1,5 @@
-# Curator Pipeline: Viral 12-Hour AI Short Generator
+# 12-Hour Viral AI Curator Pipeline ()
 
-This standalone script () automatically discovers viral AI videos published in the last 12 hours and transforms them into unique, legally compliant YouTube Shorts.
+Below is the updated, production-ready  script.
 
 
