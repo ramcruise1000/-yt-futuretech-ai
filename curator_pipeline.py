@@ -1,34 +1,3 @@
-# ==========================================
-# HELPER FUNCTIONS
-# ==========================================
-def get_font(size):
-    font_paths = [
-        '/usr/share/fonts/truetype/roboto/unhinted/RobotoTTF/Roboto-Bold.ttf',
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-        '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'
-    ]
-    for p in font_paths:
-        if os.path.exists(p):
-            try:
-                return PIL.ImageFont.truetype(p, size)
-            except Exception:
-                pass
-    return PIL.ImageFont.load_default()
-
-def get_text_width(font, text):
-    if hasattr(font, 'getlength'):
-        return int(font.getlength(text))
-    bbox = font.getbbox(text)
-    return bbox[2] - bbox[0]
-
-def sanitize_text(text):
-    if not text:
-        return ""
-    clean = re.sub(r'(?:Ed|Edition)\.?\s*#?\s*\d+', '', str(text), flags=re.IGNORECASE)
-    clean = ''.join(c for c in str(clean) if 32 <= ord(c) <= 126).strip()
-    clean = re.sub(r'\s+', ' ', clean)
-    return clean
-
 # =========================================
 # CURATOR PIPELINE: VIRAL 12-HOUR AI DIGEST
 # ========================================
@@ -93,6 +62,37 @@ except ImportError:
 # ==========================================
 # STEP"1: 12-Hour Viral AI Video & Trend Discovery Engine
 # =========================================
+
+def get_font(size):
+    font_paths = [
+        "/usr/share/fonts/truetype/roboto/unhinted/RobotoTTF/Roboto-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+    ]
+    for p in font_paths:
+        if os.path.exists(p):
+            try:
+                return PIL.ImageFont.truetype(p, size)
+            except Exception:
+                pass
+    return PIL.ImageFont.load_default()
+
+def get_text_width(font, text):
+    if hasattr(font, "getlength"):
+        return int(font.getlength(text))
+    bbox = font.getbbox(text)
+    return bbox[2] - bbox[0]
+
+def sanitize_text(text):
+    if not text:
+        return ""
+    clean = re.sub(r"(?:Ed|Edition)\.?\s*#?\s*\d+", "", str(text), flags=re.IGNORECASE)
+    clean = re.sub(r"[-]", "", clean).strip()
+    clean = re.sub(r"\s+", " ", clean)
+    if not clean:
+        clean = "Viral AI News Update"
+    return clean
+
 def fetch_viral_12h_ai_content():
     """
     Searches YouTube Data API v3 and RSS feeds for viral AI videos published 
@@ -245,39 +245,81 @@ def generate_curation_script(viral_target):
     desc_orig = viral_target["description"][:300]
     license_type = viral_target["license_type"]
     
-    
+    clean_target_short = sanitize_text(title_orig)[:35]
+    prompt_data = [
+        "You are a top tech journalist creating a viral YouTube Short (40-45 seconds) analyzing a viral AI video that exploded in the last 12 hours.",
+        "",
+        "VIRAL TARGET DATA:",
+        "- Original Title: "" + str(title_orig) + """,
+        "- Original Creator/Channel: "" + str(channel_orig) + """,
+        "- Target Details: "" + str(desc_orig) + """,
+        "- Curation Mode: " + str(license_type),
+        "",
+        "RULES:",
+        "1. Create a TRANSFORMATIONAL, exciting 4-slide commentary script.",
+        "2. DO NOT just copy the target. Analyze WHY it's viral, what it means for viewers, and the key breakthrough.",
+        "3. Keep spoken lines punchy (15-20 words per slide).",
+        "4. Include strong hook title, description with channel credit, tags, and badge text.",
+        "",
+        "Return ONLY valid JSON in this EXACT structure:",
+        json.dumps({
+            "title": "VIRAL 12H AI: [Catchy Title] #Shorts",
+            "description": f"Explaining the viral AI breakthrough from {channel_orig}...",
+            "tags": ["AI", "ArtificialIntelligence", "Shorts", "TechNews", "ViralAI"],
+            "badge_text": "12H VIRAL BREAKDOWN",
+            "slides": [
+                {
+                    "badge": "VIRAL 12H UPDATE",
+                    "text": f"A massive AI breakthrough just went viral in the last 12 hours from {channel_orig}!",
+                    "highlight_word": "breakthrough"
+                },
+                {
+                    "badge": "KEY INNOVATION",
+                    "text": f"Here is why everyone is talking about {clean_target_short} and what it changes.",
+                    "highlight_word": "innovative"
+                },
+                {
+                    "badge": "THE IMPACT",
+                    "text": "This technology automates complex workflows in seconds, disrupting traditional tools.",
+                    "highlight_word": "disrupting"
+                },
+                {
+                    "badge": "VERDICT",
+                    "text": "Subscribe to FutureTech AI for daily 12-hour viral breakdowns as they happen!",
+                    "highlight_word": "Subscribe"
+                }
+            ]
+        }, indent=2)
+    ]
+    prompt = "\n".join(prompt_data)
     
     gemini_key = os.environ.get("GEMINI_API_KEY")
     if gemini_key and genai:
-        gemini_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-pro"]
-        for g_model in gemini_models:
-            try:
-                client = genai.Client(api_key=gemini_key)
-                response = client.models.generate_content(
-                    model=g_model,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(response_mime_type="application/json")
-                )
-                if response and response.text:
-                    return json.loads(response.text)
-            except Exception as e:
-                print(f"   ⚠️ Gemini ({g_model}) note: {e}")
+        try:
+            client = genai.Client(api_key=gemini_key)
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(response_mime_type="application/json")
+            )
+            if response and response.text:
+                return json.loads(response.text)
+        except Exception as e:
+            print(f"   ⚠f Gemini script generation note: {e}")
 
     groq_key = os.environ.get("GROQ_API_KEY")
     if groq_key and Groq:
-        groq_models = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "llama-3.2-11b-vision-preview", "llama3-8b-8192", "mixtral-8x7b-32768", "gemma2-9b-it"]
-        for q_model in groq_models:
-            try:
-                client = Groq(api_key=groq_key)
-                completion = client.chat.completions.create(
-                    model=q_model,
-                    messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"}
-                )
-                if completion.choices:
-                    return json.loads(completion.choices[0].message.content)
-            except Exception as e:
-                print(f"   ⚠️ Groq ({q_model}) note: {e}")
+        try:
+            client = Groq(api_key=groq_key)
+            completion = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"}
+            )
+            if completion.choices:
+                return json.loads(completion.choices[0].message.content)
+        except Exception as e:
+            print(f"   ⚆ Groq script generation note: {e}")
 
     clean_target = sanitize_text(title_orig)
     return {
@@ -449,11 +491,11 @@ def render_curated_short_video(curated_data, viral_target, output_file="short_cu
         slide_text = slide.get("text", "")
         asyncio.run(synthesize_slide_audio(slide_text, audio_file))
         
-        audio_clip = AudioFileClip(output_file=audio_file) if False else AudioFileClip(audio_file)
+        audio_clip = AudioFileClip(output_file=audio_file) 
         slide_duration = max(audio_clip.duration + 0.4, 3.5)
         
         badge_str = slide.get("badge", "12H VIRAL UPDATE")
-        highlght_str = slide.get("highlight_word", "").lower()
+        highlight_str = slide.get("highlight_word", "").lower()
         
         frame_pil = base_bg_pil.copy()
         draw = PIL.ImageDraw.Draw(frame_pil)
@@ -482,7 +524,6 @@ def render_curated_short_video(curated_data, viral_target, output_file="short_cu
                 curr = [word]
         if curr:
             lines_list.append(" ".join(curr))
-            
         panel_h = len(lines_list) * 85 + 60
         y_center = (h // 2) - (panel_h // 2)
         draw.rectangle([50, y_center, w - 50, y_center + panel_h], fill=(10, 15, 30, 220), outline=(168, 85, 247), width=3)
@@ -546,85 +587,6 @@ def render_curated_short_video(curated_data, viral_target, output_file="short_cu
     print(f"   ✅ Curated Short rendered successfully: {output_file}")
     return output_file
 
-    
-    full_description = f"{clean_desc[:3500]}\n\n{legal_attribution}"
-
-    body = {
-        "snippet": {
-            "title": clean_title[:100],
-            "description": full_description,
-            "tags": [sanitize_text(t)
-                    for t in tags],
-            "categoryId": "28"
-        },
-        "status": {
-            "privacyStatus": "public",
-            "selfDeclaredMadeForKids": False
-        }
-    }
-    
-    media = MediaFileUpload(video_file, chunksize=-1, resumable=True, mimetype="video/mp4")
-    request = youtube.videos().insert(part="snippet, status", body=body, media_body=media)
-    
-    response = None
-    while response is None:
-        status, response = request.next_chunk()
-        if status:
-            print(f"   Upload Progress: {int(status.progress() * 100)}%")
-        
-    video_id = response.get("id")
-    print(f"   SUCCESS! Published Curated Short live: https://youtu.be/{video_id}")
-
-    if thumbnail_file and os.path.exists(thumbnail_file):
-        try:
-            print(f"    Setting custom thumbnail for Video IC {video_id}...")
-            youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_file)).execute()
-            print("   💵 Thumbnail updated successfully!")
-        except Exception as e:
-            print(f"    Could not set thumbnail ({e}. Ensure channel phone verification.")
-
-    return video_id
-
-# =========================================
-# MAIN EXECUTION PIPELINE
-# ========================================
-def main():
-    print("======================================================")
-    print(" STARTING VIRAL 12-HOUR AI CURATOR PIPELINE")
-    print("======================================================")
-    
-    viral_target = fetch_viral_12h_ai_content()
-    curated_data = generate_curation_script(viral_target)
-    
-    thumb_file = generate_curated_thumbnail(
-        title_text=curated_data.get("title", "VIRAL 12H AI BREAKTHROUGH"),
-        badge_text=curated_data.get("badge_text", "12H VIRAL BREAKDOWN"),
-        source_channel=viral_target.get("channel", "Original Creator")
-    )
-    
-    video_file = render_curated_short_video(
-        curated_data=curated_data,
-        viral_target=viral_target
-    )
-    
-    upload_curated_to_youtube(
-        video_file=video_file,
-        title=curated_data.get("title", "VIRAL 12H AI BREAKTHROUGH"),
-        description=curated_data.get("description", "Viral AI news breakdown."),
-        tags=curated_data.get("tags", ["AI", "Shorts"]),
-        source_target=viral_target,
-        thumbnail_file=thumb_file
-    )
-    
-    print("======================================================")
-    print("✅ VIRAL 12H AI CURATOR PIPELINE COMPLETE")
-    print("======================================================")
-
-if __name__ == "__main__":
-    main()
-
-# ==========================================
-# STEP 6: YouTube Upload with Legal Attribution
 # ========================================
 def upload_curated_to_youtube(video_file, title, description, tags, source_target, thumbnail_file=None):
     clean_title = sanitize_text(title)
