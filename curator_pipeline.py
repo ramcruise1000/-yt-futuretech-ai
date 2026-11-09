@@ -43,10 +43,13 @@ try:
     import edge_tts
 except ImportError:
     edge_tts = None
-from moviepy.editor import (
-    VideoClip, ImageClip, AudioFileClip, CompositeVideoClip, 
-    CompositeAudioClip, concatenate_videoclips
-)
+try:
+    from moviepy.editor import (
+        VideoClip, ImageClip, AudioFileClip, CompositeVideoClip, 
+        CompositeAudioClip, concatenate_videoclips
+    )
+except ImportError:
+    VideoClip = ImageClip = AudioFileClip = CompositeVideoClip = CompositeAudioClip = concatenate_videoclips = None
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
@@ -56,35 +59,6 @@ from googleapiclient.errors import HttpError
 # ==========================================
 # STEP"1: 12-Hour Viral AI Video & Trend Discovery Engine
 # =========================================
-
-def get_font(size):
-    font_paths = [
-        '/usr/share/fonts/truetype/roboto/unhinted/RobotoTTF/Roboto-Bold.ttf',
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-        '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'
-    ]
-    for p in font_paths:
-        if os.path.exists(p):
-            try:
-                return PIL.ImageFont.truetype(p, size)
-            except Exception:
-                pass
-    return PIL.ImageFont.load_default()
-
-def get_text_width(font, text):
-    if hasattr(font, 'getlength'):
-        return int(font.getlength(text))
-    bbox = font.getbbox(text)
-    return bbox[2] - bbox[0]
-
-def sanitize_text(text):
-    if not text:
-        return ""
-    clean = re.sub(r'(?:Ed|Edition)\.?\s*#?\s*\d+', '', str(text), flags=re.IGNORECASE)
-    clean = re.sub(r'[^-]+', '', clean).strip()
-    clean = re.sub(r'\s+', ' ', clean)
-    return clean
-
 def fetch_viral_12h_ai_content():
     """
     Searches YouTube Data API v3 and RSS feeds for viral AI videos published 
@@ -171,7 +145,7 @@ def fetch_viral_12h_ai_content():
                             "legal_note": "Original news breakdown & commentary under Fair Use (17 U.S.C. £ 107)."
                         })
         except Exception as e:
-            print(f"   ⚆ YouQube API Search note: {e}")
+            print(f"   ⚆ YouTube API Search note: {e}")
 
     # 2. RSS / Web Trend Fallback (if API search returned no items)
     if not viral_items:
@@ -237,52 +211,50 @@ def generate_curation_script(viral_target):
     desc_orig = viral_target["description"][:300]
     license_type = viral_target["license_type"]
     
-    prompt = f"""You are a top tech journalist creating a viral YouTube Short (40-45 seconds) analyzing a viral AI video that exploded in the last 12 hours.
-
-VIRAL TARGET DATA:
-- Original Title: "{title_orig}"
-- Original Creator/Channel: "{channel_orig}"
-- Target Details: "{desc_orig}"
-- Curation Mode: {license_type}
-
-RULES:
-1. Create a TRANSFORMATIONAL, exciting 4-slide commentary script.
-2. DO NOT just copy the target. Analyze WHY it's viral, what it means for viewers, and the key breakthrough.
-3. Keep spoken lines punchy (15-20 words per slide).
-4. Include strong hook title, description with channel credit, tags, and badge text.
-
-Return ONLY valid JSON in this EXACT structure:
-{
-  "title": "VIRAL 12H AI: [Catchy Title] #Shorts",
-  "description": "Explaining the viral AI breakthrough from {channel_orig}...",
-  "tags": ["AI", "ArtificialIntelligence", "Shorts", "TechNews", "ViralAI"],
-  "badge_text": "12H VIRAL BREAKDOWN",
-  "slides": [
-    {
-      "badge": "VIRAL 12H UPDATE",
-      "text": "A massive AI breakthrough just went viral in the last 12 hours from {channel_orig}!",
-      "highlight_word": "breakthrough"
-    },
-    {
-      "badge": "KEY INNOVATION",
-      "text": "Here is why everyone is talking about {title_orig[:30]} and what it changes.",
-      "highlight_word": "innovative"
-    },
-    {
-      "badge": "THE IMPACT",
-      "text": "This technology automates complex workflows in seconds, disrupting traditional tools.",
-      "highlight_word": "disrupting"
-    },
-    {
-      "badge": "VERDICT",
-      "text": "Subscribe to FutureTech AI for daily 12-hour viral breakdowns as they happen!",
-      "highlight_word": "Subscribe"
-    }
-  ]
-}
-"""
+    prompt = (
+        "You are a top tech journalist creating a viral YouTube Short (40-45 seconds) analyzing a viral AI video that exploded in the last 12 hours.\n\n"
+        "VIRAL TARGET DATA:\n"
+        "- Original Title: " + json.dumps(title_orig) + "\n"
+        "- Original Creator/Channel: " + json.dumps(channel_orig) + "\n"
+        "- Target Details: " + json.dumps(desc_orig) + "\n"
+        "- Curation Mode: " + str(license_type) + "\n\n"
+        "RULES:\n"
+        "1. Create a TRANSFORMATIONAL, exciting 4-slide commentary script.\n"
+        "2. DO NOT just copy the target. Analyze WHY it's viral, what it means for viewers, and the key breakthrough.\n"
+        "3. Keep spoken lines punchy (15-20 words per slide).\n"
+        "4. Include strong hook title, description with channel credit, tags, and badge text.\n\n"
+        "Return ONLY valid JSON in this EXACT structure:\n"
+        "{\n"
+        '  "title": "VIRAL 12H AI: [Catchy Title] #Shorts",\n'
+        '  "description": "Explaining the viral AI breakthrough...",\n'
+        '  "tags": ["AI", "ArtificialIntelligence", "Shorts", "TechNews", "ViralAI"],\n'
+        '  "badge_text": "12H VIRAL BREAKDOWN",\n'
+        '  "slides": [\n'
+        '    {\n'
+        '      "badge": "VIRAL 12H UPDATE",\n'
+        '      "text": "A massive AI breakthrough just went viral in the last 12 hours!",\n'
+        '      "highlight_word": "breakthrough"\n'
+        '    },\n'
+        '    {\n'
+        '      "badge": "KEY INNOVATION",\n'
+        '      "text": "Here is why everyone is talking about this breakthrough and what it changes.",\n'
+        '      "highlight_word": "innovative"\n'
+        '    },\n'
+        '    {\n'
+        '      "badge": "THE IMPACT",\n'
+        '      "text": "This technology automates complex workflows in seconds, disrupting traditional tools.",\n'
+        '      "highlight_word": "disrupting"\n'
+        '    },\n'
+        '    {\n'
+        '      "badge": "VERDICT",\n'
+        '      "text": "Subscribe to FutureTech AI for daily 12-hour viral breakdowns as they happen!",\n'
+        '      "highlight_word": "Subscribe"\n'
+        '    }\n'
+        '  ]\n'
+        "}\n"
+    )
     
-    gemini_key = os.environ.get("GEMINI_API_KEY")
+    gemiji_key = os.environ.get("GEMINI_API_KEY")
     if gemini_key and genai:
         try:
             client = genai.Client(api_key=gemini_key)
@@ -308,7 +280,7 @@ Return ONLY valid JSON in this EXACT structure:
             if completion.choices:
                 return json.loads(completion.choices[0].message.content)
         except Exception as e:
-            print(f"   ⚆ Groq script generation note: {e}")
+            print(f"   ⚆ Groq script generation note: {e}")
 
     clean_target = sanitize_text(title_orig)
     return {
@@ -357,7 +329,7 @@ async def synthesize_slide_audio(text, output_file):
             if os.path.exists(output_file) and os.path.getsize(output_file) > 1000:
                 return output_file
         except Exception as e:
-            print(f"   ⚆ edge-tts attempt {attempt+1}/5 failed ({e}). Retrying...")
+            print(f"   ⚆ edge-tts attempt {attempt+1}/5 failed ({e}). Retrying...")
             await asyncio.sleep(1.5 * (attempt + 1))
     
     try:
@@ -496,7 +468,7 @@ def render_curated_short_video(curated_data, viral_target, output_file="short_cu
         draw.rectangle([60, 220, 520, 290], fill=(236, 72, 153))
         draw.text((80, 235), badge_str.upper(), font=font_badge, fill=(255, 255, 255))
         
-        attr_str = f"SOURCE: {source_channel.upper()}  •  {license_note.upper()}"
+        attr_str = f"SOURCE: {source_channel.upper()} • {license_note.upper()}"
         aw = get_text_width(font_credit, attr_str)
         drw = draw
         drw.rectangle([(w - aw)//2 - 15, h - 220, (w + aw)//2 + 15, h - 160], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=2)
@@ -551,7 +523,7 @@ def render_curated_short_video(curated_data, viral_target, output_file="short_cu
     music_path = get_background_music()
     if music_path and os.path.exists(music_path):
         try:
-            bg_music = AudioFileClip(music_path).volumex(0.12).set_duration(final_video.duration)
+            bg_music = AudioFileClip(music_path).filter(lambda gf, t: 0.12 * gf(t)).set_duration(final_video.duration)
             comp_audio = CompositeAudioClip([final_video.audio, bg_music])
             final_video = final_video.set_audio(comp_audio)
         except Exception as e:
@@ -576,23 +548,24 @@ def render_curated_short_video(curated_data, viral_target, output_file="short_cu
     print(f"   ✅ Curated Short rendered successfully: {output_file}")
     return output_file
 
+
 # ==========================================
 # STEP 6: YouTube Upload with Legal Attribution
 # ==========================================
 def upload_curated_to_youtube(video_file, title, description, tags, source_target, thumbnail_file=None):
     clean_title = sanitize_text(title)
     clean_desc = sanitize_text(description)
-    print(f"🚀 Step 6: Uploading curated video '{clean_title}' to YouTube...")
+    print("🚀 Step 6: Uploading curated video '" + str(clean_title) + "' to YouTube...")
     
     client_id = os.environ.get("YOUTUBE_CLIENT_ID")
     client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
     refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN")
     
     if not all([client_id, client_secret, refresh_token]):
-        print("⚠️ YouTube credentials missing in environment. Skipping live upload step.")
+        print("⚠️ Credentials missing in environment. Skipping live upload step.")
         return None
 
-    token_url = "https://" + "oauth2.googleapis.com/token"
+    token_url = "https://oauth2.googleapis.com/token"
     creds = Credentials(
         token=None,
         refresh_token=refresh_token,
@@ -605,22 +578,22 @@ def upload_curated_to_youtube(video_file, title, description, tags, source_targe
     
     source_title = source_target.get("title", "Original Source")
     source_channel = source_target.get("channel", "Creator")
-    source_url = source_target.get("url", "https://" + "youtube.com")
+    source_url = source_target.get("url", "https://youtube.com")
     license_type = source_target.get("license_type", "Licensed Commentary")
     
-    legal_attribution = f"""📌 SOURCE CREDIT & ATTRIBUTION:
-Original Video: {source_title}
-Original Creator: {source_channel}
-Original Link: {source_url}
-License: {license_type}
+    legal_attribution = (
+        "📌 SOURCE CREDIT & ATTRIBUTION:\n" +
+        "Original Video: " + str(source_title) + "\n" +
+        "Original Creator: " + str(source_channel) + "\n" +
+        "Original Link: " + str(source_url) + "\n" +
+        "License: " + str(license_type) + "\n\n" +
+        "⚖️ LEGAL STATEMENT & COMPLIANCE:\n" +
+        "This video presents an original, transformative news synthesis, commentary, and educational breakdown of recent AI developments under Section 107.\n\n" +
+        "🤖 AI PRODUCTION DISCLAIMER:\n" +
+        "Narrated using AI synthesis and produced with automated technical curation tools for education and research."
+    )
 
-⚖️ LEGAL STATEMENT & COMPLIANCE:
-This video presents an original, transformative news synthesis, commentary, and educational breakdown of recent AI developments under Section 107.
-
-🤖 AI PRODUCTION DISCLAIMER:
-Narrated using AI synthesis and produced with automated technical curation tools for education and research."""
-
-    full_description = clean_desc[:3500] + chr(10) + chr(10) + legal_attribution
+    full_description = clean_desc[:3500] + "\n\n" + legal_attribution
     body = {
         "snippet": {
             "title": clean_title[:100],
@@ -641,22 +614,21 @@ Narrated using AI synthesis and produced with automated technical curation tools
     while response is None:
         status, response = request.next_chunk()
         if status:
-            print(f"   Upload Progress: {int(status.progress() * 100)}%")
+            print("   Upload Progress: " + str(int(status.progress() * 100)) + "%")
         
     video_id = response.get("id")
-    pub_link = "https://" + "youtu.be/" + str(video_id)
-    print(f"🎉 SUCCESS! Published Curated Short live: {pub_link}")
+    pub_link = "https://youtu.be/" + str(video_id)
+    print("🎉 SUCCESS! Published Curated Short live: " + str(pub_link))
 
     if thumbnail_file and os.path.exists(thumbnail_file):
         try:
-            print(f"🖼️ Setting custom thumbnail for Video ID {video_id}...")
+            print("🖼️ Setting custom thumbnail for Video ID " + str(video_id) + "...")
             youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_file)).execute()
             print("   ✅ Thumbnail updated successfully!")
         except Exception as e:
-            print(f"   ⚠️ Could not set thumbnail ({e}). Ensure channel phone verification.")
+            print("   ⚠️ Could not set thumbnail: " + str(e))
 
     return video_id
-
 
 # ==========================================
 # MAIN EXECUTION PIPELINE
@@ -690,7 +662,7 @@ def main():
     )
     
     print("======================================================")
-    print("✅ VIRAL 12H AI CURATOR PIPELINE COMPLETE")
+    print("✅ VIRAL 12-HOUR AI CURATOR PIPELINE COMPLETE")
     print("======================================================")
 
 if __name__ == "__main__":
