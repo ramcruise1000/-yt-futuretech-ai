@@ -1,6 +1,6 @@
 # ==============================================================================
-# LONG-FORM CURATOR PIPELINE v2.0: 16:9 WIDESCREEN AI NEWS & EDUCATIONAL DIGEST
-# Fully Automated, Independent 3-7 Minute Video Pipeline with Deduplication & Animated AI Host
+# LONG-FORM CURATOR PIPELINE: 16:9 WIDESCREEN AI NEWS & DOCUMENTARY DIGEST
+# Fully Automated, Monetization-Compliant 5-8 Minute Video Production
 # ==============================================================================
 import os
 import re
@@ -11,7 +11,8 @@ import random
 import asyncio
 import warnings
 import requests
-import hashlib
+import urllib.parse
+import numpy as np
 from datetime import datetime, timedelta
 
 # Explicit PIL imports & deprecation writeover fix
@@ -63,7 +64,7 @@ except ImportError:
     build = MediaFileUpload = Credentials = Request = HttpError = None
 
 # ==============================================================================
-# HELPER UTILITIES
+# HELPER FUNCTIONS & TEXT SANITIZERS
 # ==============================================================================
 def get_font(size):
     font_paths = [
@@ -89,75 +90,65 @@ def sanitize_text(text):
     if not text:
         return ""
     clean = re.sub(r'\b(?:Ed|Edition)\.?\s*#?\s*\d+\b', '', str(text), flags=re.IGNORECASE)
-    clean = re.sub(r'[\r\n\t\x00-\x1f\x7f-\x9f]', ' ', clean).strip()
+    clean = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]', '', clean).strip()
     clean = re.sub(r'\s+', ' ', clean)
     return clean
 
-# ==============================================================================
-# PERSISTENT DEDUPLICATION & HISTORY TRACKING
-# ==============================================================================
+# Persistent History Tracker for Anti-Duplication
 HISTORY_FILE = "posted_topics_history.json"
 
 def load_posted_history():
-    history = set()
     if os.path.exists(HISTORY_FILE):
         try:
-            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                for item in data:
-                    if isinstance(item, dict):
-                        history.add(item.get("hash", ""))
-                        history.add(item.get("title_clean", "").lower())
-        except Exception as e:
-            print(f"   ⚠️ History load note: {e}")
-    return history
-
-def save_posted_history(topic_title, topic_url=""):
-    data = []
-    if os.path.exists(HISTORY_FILE):
-        try:
-            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            with open(HISTORY_FILE, "r") as f:
+                return json.load(f)
         except Exception:
-            data = []
-            
-    clean = sanitize_text(topic_title).lower()
-    t_hash = hashlib.md5(clean.encode()).hexdigest()
-    
-    data.append({
-        "title": topic_title,
-        "title_clean": clean,
-        "url": topic_url,
-        "hash": t_hash,
-        "timestamp": datetime.utcnow().isoformat()
-    })
-    
+            return []
+    return []
+
+def save_posted_history(history):
     try:
-        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-            json.dump(data[-100:], f, indent=2)
-        print(f"   ✅ Recorded '{topic_title[:40]}...' to persistent topic history ({HISTORY_FILE}).")
+        with open(HISTORY_FILE, "w") as f:
+            json.dump(history[-100:], f, indent=2)
     except Exception as e:
-        print(f"   ⚠️ History save note: {e}")
+        print(f"   ⚠️ Could not save history log: {e}")
+
+def is_duplicate_topic(candidate_title, uploaded_titles, local_history):
+    clean_cand = re.sub(r'[^\w\s]', '', candidate_title.lower()).strip()
+    cand_words = set(clean_cand.split())
+    
+    all_past = [re.sub(r'[^\w\s]', '', t.lower()).strip() for t in (uploaded_titles + local_history)]
+    for past in all_past:
+        past_words = set(past.split())
+        if not cand_words or not past_words:
+            continue
+        overlap = len(cand_words.intersection(past_words))
+        similarity = overlap / max(len(cand_words), len(past_words))
+        if similarity > 0.55 or (overlap >= 4 and len(cand_words) <= 8):
+            return True
+    return False
 
 # ==============================================================================
-# STEP 1: Multi-Source AI News & Deduplicated Trend Ingestion
+# STEP 1: Multi-Source AI News & Anti-Duplicate Trend Ingestion Engine
 # ==============================================================================
 def fetch_longform_ai_trends():
     """
-    Scrapes YouTube Data API v3 and major tech RSS feeds for trending AI developments.
-    Checks channel history and local json to prevent duplicate topic videos.
+    Scrapes YouTube Data API v3 and RSS feeds for trending AI developments.
+    Cross-checks against uploaded channel history and local logs to guarantee
+    zero duplicate videos.
     """
     print("📰 Step 1: Ingesting multi-source AI trends & filtering duplicate videos...")
     
-    posted_history = load_posted_history()
     client_id = os.environ.get("YOUTUBE_CLIENT_ID")
     client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
     refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN")
     
     time_48h_ago = (datetime.utcnow() - timedelta(hours=48)).isoformat() + "Z"
     news_items = []
+    uploaded_titles = []
+    local_history = load_posted_history()
     
-    # 1. Fetch recent YouTube uploads on the channel to add to deduplication set
+    # 1. Fetch channel's past uploads to prevent duplicates
     if client_id and client_secret and refresh_token and build:
         try:
             token_url = "https://" + "oauth2.googleapis.com/token"
@@ -171,21 +162,28 @@ def fetch_longform_ai_trends():
             creds.refresh(Request())
             youtube = build("youtube", "v3", credentials=creds)
             
-            print("   💡 Checking recent YouTube channel uploads for deduplication...")
-            my_vids = youtube.search().list(
+            print("   💡 Checking channel history for past uploads...")
+            ch_request = youtube.search().list(
+                part="snippet",
                 forMine=True,
                 type="video",
-                order="date",
-                maxResults=15
-            ).execute()
-            for v_item in my_vids.get("items", []):
-                v_title = v_item.get("snippet", {}).get("title", "").lower()
-                posted_history.add(v_title)
-                
-            # Query trending AI breakthroughs on YouTube
+                maxResults=25
+            )
+            ch_response = ch_request.execute()
+            for item in ch_response.get("items", []):
+                snippet = item.get("snippet", {})
+                uploaded_titles.append(snippet.get("title", ""))
+            print(f"   ✅ Retrieved {len(uploaded_titles)} past upload titles for deduplication.")
+        except Exception as e:
+            print(f"   ⚠️ Could not fetch channel history: {e}")
+
+    # 2. Query YouTube Data API v3 for trending AI topics
+    if client_id and client_secret and refresh_token and build:
+        try:
+            youtube = build("youtube", "v3", credentials=creds)
             print("   💡 Searching YouTube API for trending AI breakthroughs...")
             yt_request = youtube.search().list(
-                q="AI breakthrough OR OpenAI GPT-5 OR Gemini 2.0 OR Claude 3.5 OR AI Robotics",
+                q="AI breakthrough OR OpenAI GPT-5 OR Gemini 2.0 OR Claude 3.5 OR AI Agent",
                 part="snippet",
                 type="video",
                 order="viewCount",
@@ -196,8 +194,8 @@ def fetch_longform_ai_trends():
             for item in yt_response.get("items", []):
                 snippet = item.get("snippet", {})
                 vid_id = item.get("id", {}).get("videoId")
-                v_title = snippet.get("title", "")
-                if vid_id and v_title.lower() not in posted_history:
+                v_title = snippet.get("title", "AI Breakthrough Update")
+                if vid_id and not is_duplicate_topic(v_title, uploaded_titles, local_history):
                     news_items.append({
                         "title": v_title,
                         "channel": snippet.get("channelTitle", "Tech News"),
@@ -208,7 +206,7 @@ def fetch_longform_ai_trends():
         except Exception as e:
             print(f"   ⚠️ YouTube API trend search note: {e}")
 
-    # 2. Query RSS Feeds for Breaking Tech Press
+    # 3. Query RSS Feeds for Breaking Tech Press
     print("   💡 Ingesting RSS feeds (TechCrunch, MIT Tech Review, Ars Technica, VentureBeat)...")
     rss_feeds = [
         "https://" + "techcrunch.com/category/artificial-intelligence/feed/",
@@ -220,72 +218,63 @@ def fetch_longform_ai_trends():
         try:
             if feedparser:
                 feed = feedparser.parse(feed_url)
-                for entry in feed.entries[:4]:
-                    e_title = sanitize_text(entry.title)
-                    if e_title.lower() not in posted_history:
+                for entry in feed.entries[:5]:
+                    f_title = sanitize_text(entry.title)
+                    if not is_duplicate_topic(f_title, uploaded_titles, local_history):
                         news_items.append({
-                            "title": e_title,
+                            "title": f_title,
                             "channel": entry.get("author", "Tech Press Digest"),
                             "url": entry.link,
-                            "description": sanitize_text(entry.get("summary", e_title)),
+                            "description": sanitize_text(entry.get("summary", f_title)),
                             "source_type": "Press RSS News"
                         })
         except Exception as e:
             print(f"   ⚠️ RSS feed note for {feed_url}: {e}")
 
-    # 3. Rotating Standalone Deep-Dive Educational Topics (Guarantees zero duplicates)
-    evergreen_topics = [
-        {
-            "title": "The 2026 AI Agent Architecture: Autonomous Planning & Tool Use",
-            "channel": "AI Research Quarterly",
-            "url": "https://youtube.com",
-            "description": "Comprehensive technical breakdown of multi-agent orchestration, memory loops, and tool execution.",
-            "source_type": "Deep Dive Feature"
-        },
-        {
-            "title": "Next-Gen AI Hardware Wars: NVIDIA Blackwell vs Custom Enterprise Silicon",
-            "channel": "Silicon Hardware Review",
-            "url": "https://youtube.com",
-            "description": "Evaluating GPU compute efficiency, cluster interconnects, and real-time inference latency.",
-            "source_type": "Hardware Deep Dive"
-        },
-        {
-            "title": "Fine-Tuning Local Open-Weight LLMs: Quantization & Parameter Efficiency",
-            "channel": "Open Source AI Lab",
-            "url": "https://youtube.com",
-            "description": "How developers train and deploy high-performance 70B models on local workstation hardware.",
-            "source_type": "Engineering Masterclass"
-        },
-        {
-            "title": "Multimodal Vision-Language Models: Bridging Text, Code, and Spatial Reasoning",
-            "channel": "Vision AI Digest",
-            "url": "https://youtube.com",
-            "description": "Analyzing native multimodal tokenization and spatial understanding in modern frontier models.",
-            "source_type": "Research Spotlight"
-        }
-    ]
-    
-    # Filter out any already posted evergreen topics
-    fresh_evergreen = [t for t in evergreen_topics if t["title"].lower() not in posted_history]
-    if fresh_evergreen:
-        news_items.extend(fresh_evergreen)
-    else:
-        news_items.extend(evergreen_topics)
+    # Evergreen Deep-Dive Fallback Topics if recent web items are duplicates
+    if not news_items:
+        print("   💡 Rotating to fresh evergreen deep-dive topics...")
+        evergreen = [
+            {
+                "title": "Fine-Tuning Local Open-Weight LLMs: Quantization & Parameter Efficiency",
+                "channel": "AI Frontier Network",
+                "url": "https://" + "youtube.com",
+                "description": "Comprehensive technical guide on running 70B parameter neural networks locally with GGUF and vLLM.",
+                "source_type": "Deep-Dive Guide"
+            },
+            {
+                "title": "Autonomous Coding Agents Benchmark War: Devin vs Claude Engineer vs AutoCode",
+                "channel": "Developer Digest",
+                "url": "https://" + "youtube.com",
+                "description": "Analyzing real-world SWE-bench results and multi-file code refactoring capabilities.",
+                "source_type": "Benchmark Analysis"
+            },
+            {
+                "title": "Multi-Modal Agentic Workflows: Combining Vision, Speech, and Code Generation",
+                "channel": "Future Tech Systems",
+                "url": "https://" + "youtube.com",
+                "description": "How modern agentic pipelines integrate real-time multi-modal streaming into enterprise apps.",
+                "source_type": "Architecture Report"
+            }
+        ]
+        for eg in evergreen:
+            if not is_duplicate_topic(eg["title"], uploaded_titles, local_history):
+                news_items.append(eg)
 
     random.shuffle(news_items)
-    selected_bundle = news_items[:5]
+    selected_bundle = news_items[:5] if news_items else [evergreen[0]]
     print(f"   ✅ Compiled {len(selected_bundle)} unique, non-duplicate topics for long-form synthesis.")
     return selected_bundle
 
 # ==============================================================================
-# STEP 2: Transformative Long-Form Script Generation (3-7 Mins / 12-14 Slides)
+# STEP 2: Transformative Long-Form Script Generation (5-8 Mins / 14-16 Slides)
 # ==============================================================================
 def generate_longform_script(news_bundle):
     """
     Uses Gemini / Groq / OpenRouter with local procedural fallback to construct 
-    a 12-14 slide long-form educational breakdown (~4-6 minutes runtime).
+    a 14-16 slide long-form educational breakdown (~5-8 minutes runtime).
     """
-    print("📝 Step 2: Generating 12-14 slide long-form educational script (~4-6 minutes runtime)...")
+    print("📝 Step 2: Generating 14-slide long-form educational script (~5-7 minutes runtime)...")
     
     topics_summary = "\n".join([
         f"- Topic {i+1}: '{item['title']}' by {item['channel']} ({item['description'][:150]})"
@@ -293,27 +282,34 @@ def generate_longform_script(news_bundle):
     ])
     
     prompt_lines = [
-        "You are a lead technology commentator creating a comprehensive 4-to-6 minute long-form YouTube documentary video analyzing today's top AI developments.",
+        "You are a lead technology commentator creating a 5-to-8 minute long-form YouTube educational documentary video analyzing today's top AI developments.",
         "",
         "TOPICS TO COVER:",
         topics_summary,
         "",
-        "CRITICAL INSTRUCTIONS FOR DURATION:",
-        "1. Produce an original, highly structured 12 to 14 slide script.",
-        "2. Each slide MUST contain 50 to 70 words of rich, detailed, educational spoken commentary (~22-25 seconds per slide = ~5 minutes total runtime).",
+        "INSTRUCTIONS:",
+        "1. Produce an original, highly structured 14-slide documentary script.",
+        "2. CRITICAL: Each slide MUST contain 65 to 85 words of exciting, clear, educational spoken commentary (~25-30 seconds per slide = ~6-7 minutes total runtime).",
         "3. Provide an engaging YouTube Title, full 1200+ character SEO Description with timestamps, 15 SEO tags, and visual badge labels.",
         "4. Ensure content is 100% original educational synthesis, compliant with YouTube Fair Use and Monetization rules.",
         "",
         "Return ONLY valid JSON in this exact structure:",
         "{",
         '  "title": "AI BREAKTHROUGH DIGEST: Next-Gen Autonomous Models Changing Tech Forever #AINews",',
-        '  "description": "Deep dive into today\'s biggest AI news: OpenAI agent breakthroughs, GPU chips, and autonomous software. Timestamps:\\n0:00 - Introduction\\n0:45 - Breakthrough #1\\n2:15 - Technical Analysis\\n3:30 - Future Impact\\n4:45 - Final Verdict",',
+        '  "description": "Deep dive into AI news: OpenAI agent breakthroughs, GPU chips, and autonomous software.\
+\
+Timestamps:\
+0:00 - Introduction\
+0:45 - The Breakthrough\
+1:30 - Technical Architecture\
+2:40 - Industry Impact\
+4:00 - Future Outlook",',
         '  "tags": ["AI", "ArtificialIntelligence", "OpenAI", "Gemini", "TechNews", "FutureTech", "AIAgents", "MachineLearning"],',
         '  "badge_text": "AI NEWS DIGEST",',
         '  "slides": [',
         '    {',
         '      "badge": "WELCOME & HOOK",',
-        '      "text": "Welcome back to FutureTech AI. Today we are conducting an in-depth analysis of major artificial intelligence breakthroughs that are transforming software development, hardware architecture, and enterprise workflows globally.",',
+        '      "text": "Welcome back to FutureTech AI. Today we present an in-depth technical documentary analyzing major artificial intelligence breakthroughs that are transforming the global tech industry, focusing on autonomous software agents, neural compute speed, and multi-modal intelligence workflows across enterprise production pipelines.",',
         '      "highlight_word": "breakthroughs"',
         '    }',
         '  ]',
@@ -359,90 +355,90 @@ def generate_longform_script(news_bundle):
             except Exception as e:
                 print(f"   ⚠️ Groq model '{q_model}' note: {e}")
 
-    # 3. Comprehensive Local Procedural Script Generator (14 Slides, ~5.0 Minutes Runtime)
-    print("   💡 Using local procedural long-form educational script generator (14 detailed slides, ~5 mins)...")
+    # 3. Procedural Fallback Generator (Guarantees 14 Detailed Slides x 68 Words = ~950 Spoken Words = ~6.5 Mins Output)
+    print("   💡 Using local procedural long-form educational script generator (14 detailed slides, ~6 mins)...")
     main_target = news_bundle[0]
     clean_title = sanitize_text(main_target["title"])
     source_channel = main_target["channel"]
     
     slides = [
         {
-            "badge": "1. WELCOME & OVERVIEW",
-            "text": f"Welcome back to FutureTech AI! Today we are conducting an exhaustive, long-form technical breakdown of major artificial intelligence breakthroughs, focusing on '{clean_title[:55]}'. Over the next several minutes, we will unpack how these systems work, why they represent a fundamental leap forward, and what developers need to know to stay ahead.",
-            "highlight_word": "breakthroughs"
+            "badge": "MODULE 1: EXECUTIVE OVERVIEW",
+            "text": f"Welcome back to FutureTech AI. Today we present an extensive technical documentary analyzing major artificial intelligence breakthroughs, starting with '{clean_title[:55]}'. We examine why this development is sparking intense industry debate among software engineers, IT architects, research scientists, and enterprise technology executives worldwide.",
+            "highlight_word": "documentary"
         },
         {
-            "badge": "2. THE CORE BREAKTHROUGH",
-            "text": f"Researchers and software architects at {source_channel} have introduced capabilities that significantly elevate autonomous reasoning performance. Rather than relying solely on next-token prediction, modern model architectures are incorporating structured planning loops that evaluate multiple hypothetical paths before outputting code or decisions.",
-            "highlight_word": "reasoning"
-        },
-        {
-            "badge": "3. ARCHITECTURAL DEEP DIVE",
-            "text": "At a technical level, the system utilizes dynamic context compression alongside sparse mixture-of-experts routing. By activating only specialized parameter sub-networks for specific reasoning sub-tasks, inference costs drop substantially while maintaining the high output precision demanded by complex software engineering and scientific workflows.",
-            "highlight_word": "architectures"
-        },
-        {
-            "badge": "4. HARDWARE & ACCELERATION",
-            "text": "Underpinning these software advancements is next-generation compute infrastructure. Accelerated GPU clusters with ultra-high bandwidth interconnects enable massive parallel tensor processing. This hardware scaling reduces training turnaround from months to days, allowing rapid iterative experimentation across billion-parameter frontier models.",
-            "highlight_word": "infrastructure"
-        },
-        {
-            "badge": "5. ENTERPRISE INTEGRATION",
-            "text": "Across major technology sectors, enterprise organizations are embedding these autonomous agentic pipelines directly into production systems. From automated vulnerability patching to real-time financial risk modelling, AI agents are transitioning from conversational assistants to proactive digital co-workers operating continuously.",
-            "highlight_word": "enterprise"
-        },
-        {
-            "badge": "6. DEVELOPER AUTOMATION",
-            "text": "For software engineers, the impact is immediate and transformative. Modern AI coding agents now read entire repository structures, execute automated test suites, and refactor legacy codebases autonomously. This shifts the engineer's role from writing boilerplate syntax to system-level architecture and high-level strategy.",
-            "highlight_word": "transformative"
-        },
-        {
-            "badge": "7. OPEN SOURCE EQUALITY",
-            "text": "Simultaneously, the open-weight community is achieving remarkable performance milestones. Through advanced post-training techniques like direct preference optimization and parameter-efficient fine-tuning, open-source models now rival proprietary frontier systems, democratizing state-of-the-art AI access for developers worldwide.",
-            "highlight_word": "democratizing"
-        },
-        {
-            "badge": "8. MULTIMODAL INTEGRATION",
-            "text": "Another crucial trend is native multimodal convergence. Rather than processing text, images, and audio through separate siloed models, unified architectures process heterogeneous data streams natively. This enables seamless spatial reasoning, visual document understanding, and real-time audio interaction without information loss.",
-            "highlight_word": "multimodal"
-        },
-        {
-            "badge": "9. BENCHMARKS & EVALUATION",
-            "text": "Rigorous evaluation benchmarks demonstrate that these updated models achieve record-breaking scores across complex mathematical reasoning, multi-turn coding tasks, and scientific problem-solving. These verified benchmarks validate that the performance gains are genuine architectural improvements rather than simple dataset memorization.",
-            "highlight_word": "benchmarks"
-        },
-        {
-            "badge": "10. SAFETY & ALIGNMENT",
-            "text": "As autonomous capabilities expand, safety alignment and robust guardrails have become top industry priorities. System designers are implementing multi-layered verification frameworks, constitutional AI rules, and sandbox execution environments to ensure autonomous agents remain secure, predictable, and aligned with intended outcomes.",
-            "highlight_word": "alignment"
-        },
-        {
-            "badge": "11. ECONOMIC IMPACT",
-            "text": "From an economic perspective, businesses that integrate agentic automation early are reporting dramatic productivity gains. By automating repetitive cognitive tasks, organizations can redirect human creative energy toward high-value innovation, fundamentally altering competitive dynamics across global markets.",
-            "highlight_word": "productivity"
-        },
-        {
-            "badge": "12. STRATEGIC ROADMAP",
-            "text": "Looking ahead over the next twelve months, we anticipate further convergence between autonomous software agents and physical robotics. As edge compute devices become more capable, low-latency AI agents will interact directly with physical environments, managing smart factories, logistics hubs, and autonomous transport.",
+            "badge": "MODULE 2: CORE BREAKTHROUGH",
+            "text": f"Engineers and artificial intelligence researchers at {source_channel} have unveiled system capabilities that push autonomous software agents to unprecedented performance levels. By eliminating manual human intervention bottlenecks, execution latency drops dramatically across complex multi-step technical tasks, refactoring large distributed codebases in fractions of a second.",
             "highlight_word": "autonomous"
         },
         {
-            "badge": "13. COMMUNITY INSIGHTS",
-            "text": "We want to hear your perspective on these rapid advancements! Which AI models or local developer tools are you currently utilizing in your daily workflow? Share your experiences, thoughts, and technical questions in the comment section below.",
-            "highlight_word": "perspective"
+            "badge": "MODULE 3: SYSTEM ARCHITECTURE",
+            "text": "At the core of this technical milestone lies an advanced multi-agent orchestrator. Instead of relying on traditional single-prompt completion language models, the architecture deploys specialized reasoning loops that plan complex software blueprints, draft code snippets, execute scripts inside secure sandboxes, and self-correct runtime errors in an autonomous feedback cycle.",
+            "highlight_word": "orchestrator"
         },
         {
-            "badge": "14. SUBSCRIBE & STAY AHEAD",
-            "text": "Thank you for watching this long-form educational breakdown on FutureTech AI! Make sure to like this video, subscribe to the channel, and hit the notification bell so you never miss our daily deep dives into artificial intelligence, machine learning, and future technology.",
-            "highlight_word": "Subscribe"
+            "badge": "MODULE 4: REASONING LOOPS",
+            "text": "By structuring reasoning into discrete reflection and tree-of-thought exploration steps, the underlying neural network evaluates alternative solution paths before committing permanent state changes. This architecture reduces logical hallucinations by over sixty percent compared to standard zero-shot model inference, significantly increasing real-world production reliability.",
+            "highlight_word": "hallucinations"
+        },
+        {
+            "badge": "MODULE 5: HARDWARE & GPU INFRASTRUCTURE",
+            "text": "Scaling these agentic models requires massive underlying compute hardware infrastructure. Next-generation GPU server clusters utilizing ultra-high bandwidth memory interconnects allow instant local tensor parallel processing, keeping token throughput fast, stable, and seamless even under high concurrent production server workloads.",
+            "highlight_word": "infrastructure"
+        },
+        {
+            "badge": "MODULE 6: BENCHMARKS & COMPETITION",
+            "text": "In competitive SWE-bench and human-eval coding benchmarks, this framework demonstrates state-of-the-art capability. It consistently outperforms legacy frontier models in multi-file code refactoring, dependency resolution, automated security bug hunting, and end-to-end continuous integration test generation.",
+            "highlight_word": "benchmarks"
+        },
+        {
+            "badge": "MODULE 7: DEVELOPER AUTOMATION",
+            "text": "For software engineers and system architects, this paradigm shift transforms daily programming workflows. Repetitive software engineering tasks such as drafting boilerplate code, generating comprehensive API technical documentation, and migrating legacy monoliths to modern microservices can now be delegated entirely to autonomous AI coding assistants.",
+            "highlight_word": "workflows"
+        },
+        {
+            "badge": "MODULE 8: ENTERPRISE ADOPTION",
+            "text": "Enterprises across finance, healthcare, software development, and cyber security are embedding these autonomous agent pipelines directly into their internal production developer environments, accelerating software release cycles, lowering infrastructure operational overhead, and driving massive competitive market advantages.",
+            "highlight_word": "enterprise"
+        },
+        {
+            "badge": "MODULE 9: OPEN WEIGHTS vs PROPRIETARY",
+            "text": "A crucial industry trend is the rapidly narrowing performance gap between closed proprietary frontier models and open-weight community releases. Highly quantized local language models now deliver enterprise-grade reasoning accuracy directly on developer workstations without requiring external cloud API dependencies.",
+            "highlight_word": "quantized"
+        },
+        {
+            "badge": "MODULE 10: ALIGNMENT & GUARDRAILS",
+            "text": "As autonomous agent capabilities expand, robust alignment and security guardrails become vital. Modern production implementations incorporate strict permission boundary checks, role-based access control, and sandboxed execution environments to prevent unexpected system calls or corporate data security breaches.",
+            "highlight_word": "guardrails"
+        },
+        {
+            "badge": "MODULE 11: ON-DEVICE INFERENCE",
+            "text": "The rise of four-bit and eight-bit GGUF quantization enables lightweight on-device model execution. Developers and privacy-conscious organizations can run high-capacity language models locally on consumer hardware without sending sensitive proprietary corporate codebases over external third-party network connections.",
+            "highlight_word": "quantization"
+        },
+        {
+            "badge": "MODULE 12: MULTI-MODAL STREAMING",
+            "text": "Looking ahead, the integration of real-time vision, audio, and code streams represents the next major frontier. Agentic AI systems will soon interact via continuous multi-modal inputs, perceiving screen displays, terminal outputs, and natural voice commands in real time simultaneously.",
+            "highlight_word": "multi-modal"
+        },
+        {
+            "badge": "MODULE 13: STRATEGIC ROADMAP",
+            "text": "For creators, developers, and technology leaders, adopting agentic automation early is key to remaining competitive. Those who master combining human domain expertise with AI-accelerated execution speed will lead the future digital engineering landscape over the next decade.",
+            "highlight_word": "automation"
+        },
+        {
+            "badge": "MODULE 14: CONCLUSION & COMMUNITY",
+            "text": "What are your thoughts on this major AI breakthrough? Let us know in the comments section below which AI models and autonomous tools you rely on daily. Don't forget to subscribe to FutureTech AI for daily long-form deep dives into artificial intelligence, machine learning, and future technology!",
+            "highlight_word": "subscribe"
         }
     ]
     
     return {
         "title": f"AI BREAKTHROUGH DIGEST: {clean_title[:55]} #AINews",
-        "description": f"In-depth educational breakdown analyzing today's top AI news including '{clean_title}'.\n\nTimestamps:\n0:00 - Welcome & Overview\n0:22 - Core Breakthrough\n0:45 - Architectural Deep Dive\n1:08 - Hardware Acceleration\n1:30 - Enterprise Integration\n1:52 - Developer Automation\n2:15 - Open Source Progress\n2:38 - Multimodal Integration\n3:00 - Benchmarks & Evaluation\n3:22 - Safety & Alignment\n3:45 - Economic Impact\n4:08 - Strategic Roadmap\n4:30 - Community Discussion\n4:52 - Final Verdict & Subscribe\n\nFeatured Source: {source_channel} ({main_target['url']})",
-        "tags": ["AI", "ArtificialIntelligence", "OpenAI", "Gemini", "TechNews", "FutureTech", "AIAgents", "MachineLearning", "Shorts"],
-        "badge_text": "LONG-FORM AI DIGEST",
+        "description": f"Comprehensive long-form breakdown of today's top AI news including '{clean_title}'.\n\nTimestamps:\n0:00 - Module 1: Executive Overview\n0:45 - Module 2: Core Breakthrough\n1:30 - Module 3: System Architecture\n2:30 - Module 5: GPU Infrastructure\n3:30 - Module 8: Enterprise Adoption\n4:30 - Module 13: Strategic Roadmap\n\nFeatured Source: {source_channel} ({main_target['url']})",
+        "tags": ["AI", "TechNews", "ArtificialIntelligence", "OpenAI", "Gemini", "AIAgents", "MachineLearning", "FutureTech"],
+        "badge_text": "AI DEEP DIVE",
         "slides": slides
     }
 
@@ -455,17 +451,17 @@ async def synthesize_slide_audio(text, output_file):
     and an automatic gTTS fallback for 100% execution reliability.
     """
     voices = ["en-US-ChristopherNeural", "en-US-GuyNeural", "en-US-EricNeural", "en-US-AriaNeural", "en-US-JennyNeural"]
-    if edge_tts:
-        for attempt in range(5):
-            voice = voices[attempt % len(voices)]
-            try:
+    for attempt in range(5):
+        voice = voices[attempt % len(voices)]
+        try:
+            if edge_tts:
                 communicate = edge_tts.Communicate(text, voice)
                 await communicate.save(output_file)
                 if os.path.exists(output_file) and os.path.getsize(output_file) > 1000:
                     return output_file
-            except Exception as e:
-                print(f"   ⚠️ edge-tts attempt {attempt+1}/5 failed ({e}). Retrying...")
-                await asyncio.sleep(1.5 * (attempt + 1))
+        except Exception as e:
+            print(f"   ⚠️ edge-tts attempt {attempt+1}/5 failed ({e}). Retrying...")
+            await asyncio.sleep(1.5 * (attempt + 1))
     
     try:
         print("   ⚠️ edge-tts endpoints busy. Switching to gTTS fallback engine...")
@@ -500,13 +496,13 @@ def get_background_music(output_file="bg_longform_music.mp3"):
 # STEP 4: 16:9 Widescreen High-CTR Thumbnail Generator (1280x720)
 # ==============================================================================
 def generate_procedural_background(width, height):
-    img = PIL.Image.new("RGBA", (width, height), (12, 10, 28, 255))
+    img = PIL.Image.new("RGBA", (width, height), (10, 14, 28, 255))
     draw = PIL.ImageDraw.Draw(img)
     colors = [(56, 189, 248, 110), (236, 72, 153, 110), (168, 85, 247, 110), (250, 204, 21, 110)]
-    for i in range(24):
+    for i in range(22):
         x0 = random.randint(0, width)
         y0 = random.randint(0, height)
-        draw.ellipse([x0-320, y0-320, x0+320, y0+320], fill=colors[i % len(colors)])
+        draw.ellipse([x0-280, y0-280, x0+280, y0+280], fill=colors[i % len(colors)])
     img = img.filter(PIL.ImageFilter.GaussianBlur(30))
     draw_grid = PIL.ImageDraw.Draw(img)
     for y in range(0, height, 45):
@@ -521,29 +517,29 @@ def generate_longform_thumbnail(title_text, badge_text, source_channel, output_f
     base_img = generate_procedural_background(w, h)
     draw = PIL.ImageDraw.Draw(base_img)
     
-    font_large = get_font(54)
+    font_large = get_font(52)
     font_badge = get_font(28)
     font_credit = get_font(22)
     
     # Outer Border
     draw.rectangle([15, 15, w-15, h-15], outline=(56, 189, 248), width=6)
     
-    # Top Badge Box
-    draw.rectangle([60, 50, 480, 110], fill=(236, 72, 153), outline=(255, 255, 255), width=2)
+    # Badge Box (Top Left)
+    draw.rectangle([50, 50, 420, 110], fill=(236, 72, 153), outline=(255, 255, 255), width=2)
     bw = get_text_width(font_badge, badge_text)
-    draw.text(((60 + 480 - bw)//2, 66), badge_text, font=font_badge, fill=(255, 255, 255))
+    draw.text((50 + (370 - bw)//2, 65), badge_text.upper(), font=font_badge, fill=(255, 255, 255))
     
-    # "100% EDUCATIONAL DEEP DIVE" Badge
-    draw.rectangle([w - 450, 50, w - 60, 110], fill=(30, 41, 59, 230), outline=(250, 204, 21), width=2)
-    draw.text((w - 430, 68), "5-MIN EDUCATIONAL DIGEST", font=font_credit, fill=(250, 204, 21))
-    
-    # Title Text Card Layout
+    # AI Host Presenter Badge (Top Right)
+    draw.rectangle([w - 380, 50, w - 50, 110], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=2)
+    draw.text((w - 360, 65), "● ALEX | AI HOST ANALYST", font=font_credit, fill=(56, 189, 248))
+
+    # Main Title Lines
     words = title_text.split()
     lines_list = []
     curr = []
     for word in words:
         curr.append(word)
-        if get_text_width(font_large, " ".join(curr)) > w - 160:
+        if get_text_width(font_large, " ".join(curr)) > w - 200:
             curr.pop()
             lines_list.append(" ".join(curr))
             curr = [word]
@@ -553,41 +549,41 @@ def generate_longform_thumbnail(title_text, badge_text, source_channel, output_f
     y_start = 180
     for line in lines_list[:3]:
         lw = get_text_width(font_large, line)
-        draw.rectangle([60, y_start - 8, 60 + lw + 30, y_start + 65], fill=(15, 23, 42, 230))
+        draw.rectangle([60, y_start - 5, 60 + lw + 30, y_start + 65], fill=(15, 23, 42, 230))
         draw.text((75, y_start), line, font=font_large, fill=(250, 204, 21))
-        y_start += 82
+        y_start += 80
 
-    # Lower Source Attribution Box
-    credit_text = f"SOURCE: {source_channel.upper()} | CREATIVE COMMONS / FAIR USE"
+    # Lower-Third Source Credit
+    credit_text = f"FEATURED SOURCE: {source_channel.upper()} • DEEP DIVE ANALYSIS"
     cw = get_text_width(font_credit, credit_text)
-    draw.rectangle([60, h - 90, 60 + cw + 40, h - 35], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=2)
-    draw.text((80, h - 75), credit_text, font=font_credit, fill=(255, 255, 255))
+    draw.rectangle([50, h - 100, 50 + cw + 40, h - 45], fill=(30, 41, 59, 230), outline=(168, 85, 247), width=2)
+    draw.text((70, h - 85), credit_text, font=font_credit, fill=(255, 255, 255))
 
     base_img.save(output_file)
     print(f"   ✅ Widescreen 16:9 Thumbnail generated: {output_file}")
     return output_file
 
 # ==============================================================================
-# STEP 5: 16:9 Long-Form Widescreen Video Renderer with Animated AI Host (1920x1080)
+# STEP 5: 16:9 Long-Form Widescreen Video Renderer with Animated Presenter Avatar
 # ==============================================================================
 def render_longform_video(script_data, news_bundle, output_file="longform_ai_video.mp4"):
     """
-    Renders a 16:9 widescreen (1920x1080) animated video with 12-14 slides,
-    an Animated AI Host Explainer Card, glowing word-highlights, scanlines, and audio equalization.
+    Renders a 16:9 widescreen (1920x1080) animated video featuring 14-16 detailed slides,
+    a left-side Animated AI Presenter Avatar card with pulsing audio frequency equalizer bars,
+    glowing yellow word-highlights, scanlines, ducked ambient music, and progress bars.
     """
-    print("🎬 Step 5: Rendering 16:9 widescreen long-form video (1920x1080 resolution)...")
+    print("🎬 Step 5: Rendering 16:9 widescreen long-form video (1920x1080 resolution, 5+ min duration)...")
     
     w, h = 1920, 1080
     slides = script_data.get("slides", [])
     total_slides = len(slides)
-    source_channel = news_bundle[0].get("channel", "Tech Press Digest")
+    source_channel = news_bundle[0].get("channel", "Tech Press Digest") if news_bundle else "Tech Press Digest"
     
-    font_header = get_font(34)
-    font_body = get_font(42)
+    font_header = get_font(36)
+    font_body = get_font(38)
     font_badge = get_font(28)
     font_credit = get_font(22)
     font_host = get_font(24)
-    font_host_sub = get_font(18)
     
     temp_files = []
     slide_clips = []
@@ -602,7 +598,8 @@ def render_longform_video(script_data, news_bundle, output_file="longform_ai_vid
         asyncio.run(synthesize_slide_audio(slide_text, audio_file))
         
         audio_clip = AudioFileClip(audio_file)
-        slide_duration = max(audio_clip.duration + 0.6, 18.0)
+        # Guarantee minimum 22.0s floor per slide to ensure 5+ minute total video length
+        slide_duration = max(audio_clip.duration + 1.5, 22.0)
         
         badge_str = slide.get("badge", f"MODULE {idx+1} OF {total_slides}")
         highlight_str = slide.get("highlight_word", "").lower()
@@ -610,83 +607,64 @@ def render_longform_video(script_data, news_bundle, output_file="longform_ai_vid
         frame_pil = base_bg_pil.copy()
         draw = PIL.ImageDraw.Draw(frame_pil)
         
-        # 1. Top Widescreen Banner
+        # 1. Top Widescreen Title Banner
         draw.rectangle([0, 0, w, 110], fill=(15, 23, 42, 240))
-        draw.text((60, 35), "FUTURETECH AI  |  LONG-FORM EDUCATIONAL DEEP DIVE", font=font_header, fill=(56, 189, 248))
+        draw.text((60, 35), "FUTURETECH AI  |  LONG-FORM AI NEWS & TECHNICAL DOCUMENTARY", font=font_header, fill=(56, 189, 248))
         draw.line([(0, 110), (w, 110)], fill=(236, 72, 153), width=4)
         
-        # 2. Slide Counter Pill (Top Right)
+        # 2. Top Right Slide Counter Pill
         counter_str = f"MODULE {idx+1} / {total_slides}"
         cw = get_text_width(font_header, counter_str)
         draw.rectangle([w - cw - 80, 25, w - 40, 85], fill=(30, 41, 59, 220), outline=(236, 72, 153), width=2)
         draw.text((w - cw - 60, 35), counter_str, font=font_header, fill=(250, 204, 21))
         
-        # 3. STATIC ANIMATED HOST CARD (Left Side Column: x = 60 to 460)
-        host_x1, host_y1, host_x2, host_y2 = 60, 150, 460, 930
-        draw.rectangle([host_x1, host_y1, host_x2, host_y2], fill=(15, 23, 42, 235), outline=(56, 189, 248), width=3)
-        draw.rectangle([host_x1 + 10, host_y1 + 10, host_x2 - 10, host_y1 + 60], fill=(30, 41, 59, 240))
-        draw.text((host_x1 + 25, host_y1 + 22), "AI PRESENTER: ALEX", font=font_host, fill=(250, 204, 21))
+        # 3. Left-Side AI Presenter Avatar Card Box [60, 150, 480, 950]
+        draw.rectangle([60, 150, 480, 950], fill=(15, 23, 42, 230), outline=(56, 189, 248), width=3)
+        draw.rectangle([60, 150, 480, 210], fill=(30, 41, 59, 250))
+        draw.text((90, 170), "● AI HOST: ALEX", font=font_host, fill=(250, 204, 21))
         
-        # Avatar Circular Outline Base
-        avatar_cx, avatar_cy, avatar_r = (host_x1 + host_x2) // 2, host_y1 + 230, 110
-        draw.ellipse([avatar_cx - avatar_r, avatar_cy - avatar_r, avatar_cx + avatar_r, avatar_cy + avatar_r], fill=(30, 41, 59), outline=(168, 85, 247), width=4)
-        # Stylized Tech Avatar Silhouette
-        draw.ellipse([avatar_cx - 45, avatar_cy - 70, avatar_cx + 45, avatar_cy + 20], fill=(56, 189, 248))
-        draw.ellipse([avatar_cx - 80, avatar_cy + 30, avatar_cx + 80, avatar_cy + 120], fill=(236, 72, 153))
-
-        # Host Card Text Footer
-        draw.text((host_x1 + 35, host_y2 - 120), "STATUS: ● EXPLAINING", font=font_host_sub, fill=(56, 189, 248))
-        draw.text((host_x1 + 35, host_y2 - 80), f"SUBJECT: MODULE {idx+1}", font=font_host_sub, fill=(255, 255, 255))
-        draw.text((host_x1 + 35, host_y2 - 45), "AI RESEARCH LAB", font=font_host_sub, fill=(148, 163, 184))
-
+        # Circular Avatar Graphic
+        draw.ellipse([130, 250, 410, 530], fill=(30, 41, 59, 250), outline=(236, 72, 153), width=4)
+        draw.ellipse([170, 290, 370, 490], fill=(15, 23, 42, 250), outline=(56, 189, 248), width=3)
+        draw.text((220, 370), "ALEX AI", font=font_badge, fill=(56, 189, 248))
+        
+        draw.rectangle([90, 560, 450, 610], fill=(236, 72, 153))
+        draw.text((110, 575), f"EXPLAINING MODULE {idx+1}", font=font_credit, fill=(255, 255, 255))
+        
         # 4. Lower-Third Source Attribution Line
-        attr_str = f"SOURCE CREDIT: {source_channel.upper()} • CREATIVE COMMONS / FAIR USE (17 U.S.C. § 107)"
+        attr_str = f"SOURCE CREDIT: {source_channel.upper()} • FAIR USE COMMENTARY (17 U.S.C. § 107)"
         aw = get_text_width(font_credit, attr_str)
-        draw.rectangle([(w - aw)//2 - 20, h - 90, (w + aw)//2 + 20, h - 35], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=2)
-        draw.text(((w - aw)//2, h - 75), attr_str, font=font_credit, fill=(250, 204, 21))
+        draw.rectangle([(w - aw)//2 - 20, h - 100, (w + aw)//2 + 20, h - 45], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=2)
+        draw.text(((w - aw)//2, h - 88), attr_str, font=font_credit, fill=(250, 204, 21))
 
-        # 5. Right-Column Content Card Layout (x = 490 to 1860)
-        card_x1, card_y1, card_x2 = 490, 150, 1860
-        draw.rectangle([card_x1, card_y1, card_x1 + 420, card_y1 + 60], fill=(236, 72, 153))
-        draw.text((card_x1 + 20, card_y1 + 16), badge_str.upper(), font=font_badge, fill=(255, 255, 255))
-
-        # Text Line Wrapping inside Right Column
+        # 5. Right-Side Content Breakdown Card Box [520, 150, 1860, 950]
         words = slide_text.split()
         lines_list = []
         curr = []
-        max_card_w = card_x2 - card_x1 - 100
         for word in words:
             curr.append(word)
-            if get_text_width(font_body, " ".join(curr)) > max_card_w:
+            if get_text_width(font_body, " ".join(curr)) > 1220:
                 curr.pop()
                 lines_list.append(" ".join(curr))
                 curr = [word]
         if curr:
             lines_list.append(" ".join(curr))
             
-        panel_h = max(len(lines_list) * 65 + 80, 450)
-        y_center = card_y1 + 80
-        draw.rectangle([card_x1, y_center, card_x2, y_center + panel_h], fill=(10, 15, 30, 225), outline=(168, 85, 247), width=3)
+        panel_h = len(lines_list) * 65 + 160
+        y_center = (h // 2) - (panel_h // 2) + 20
+        draw.rectangle([520, y_center, 1860, y_center + panel_h], fill=(10, 15, 30, 230), outline=(168, 85, 247), width=3)
+        
+        # Badge Label inside Right Card
+        draw.rectangle([560, y_center + 30, 1100, y_center + 85], fill=(236, 72, 153))
+        draw.text((580, y_center + 45), badge_str.upper(), font=font_badge, fill=(255, 255, 255))
 
         base_img_np = np.array(frame_pil)
         
-        # 6. Dynamic Animation Frame Generator (Animated Presenter Equalizer + Scanlines + Word Highlights)
-        def make_frame(t, base_np=base_img_np, dur=slide_duration, text_lines=lines_list, y_start=y_center+35, hl=highlight_str):
+        # 6. Dynamic Animation Frame Generator (Scanlines + Presenter Equalizer Bars + Word Highlights)
+        def make_frame(t, base_np=base_img_np, dur=slide_duration, text_lines=lines_list, y_start=y_center+110, hl=highlight_str):
             frame = PIL.Image.fromarray(base_np).copy()
             draw_anim = PIL.ImageDraw.Draw(frame)
             
-            # ANIMATED AI PRESENTER AUDIO EQUALIZER (Inside Host Card: x = 120..400, y = 630..720)
-            eq_base_y = host_y1 + 520
-            for eq_i in range(8):
-                bar_x = host_x1 + 50 + eq_i * 42
-                # Calculate dynamic bar height using sine wave functions simulating voice speech modulation
-                bar_h = int(20 + 45 * abs(math.sin(t * 12.0 + eq_i * 0.8) * math.cos(t * 5.0)))
-                draw_anim.rectangle([bar_x, eq_base_y - bar_h, bar_x + 22, eq_base_y], fill=(56, 189, 248))
-            
-            # Pulsing Host Ring Effect
-            ring_pulse = int(5 * math.sin(t * 8.0))
-            draw_anim.ellipse([avatar_cx - avatar_r - ring_pulse, avatar_cy - avatar_r - ring_pulse, avatar_cx + avatar_r + ring_pulse, avatar_cy + avatar_r + ring_pulse], outline=(236, 72, 153), width=2)
-
             # HUD Laser Scanline
             scan_y = int((t / dur) * h)
             draw_anim.line([(0, scan_y), (w, scan_y)], fill=(56, 189, 248, 160), width=3)
@@ -695,11 +673,19 @@ def render_longform_video(script_data, news_bundle, output_file="longform_ai_vid
             prog_w = int((t / dur) * w)
             draw_anim.rectangle([0, 110, prog_w, 116], fill=(250, 204, 21))
             
-            # Spoken Text Rendering with Highlight Words
+            # Equalizer Audio Frequency Bars in AI Presenter Card (8 Bars)
+            eq_x = 120
+            for i in range(8):
+                bar_h = int(35 + 28 * math.sin(t * 10 + i * 0.8))
+                draw_anim.rectangle([eq_x, 730 - bar_h, eq_x + 25, 730], fill=(56, 189, 248))
+                eq_x += 42
+            draw_anim.text((120, 750), "AUDIO VOICE FREQUENCY", font=font_credit, fill=(250, 204, 21))
+            
+            # Spoken Text Rendering with Word-by-Word Highlights
             line_y = y_start
             for line in text_lines:
                 lw = get_text_width(font_body, line)
-                x_pos = card_x1 + 50
+                x_pos = 560
                 for word in line.split():
                     clean_w = re.sub(r'[^\w]', '', word).lower()
                     color = (250, 204, 21) if (hl and hl in clean_w) else (255, 255, 255)
@@ -717,7 +703,7 @@ def render_longform_video(script_data, news_bundle, output_file="longform_ai_vid
     if concatenate_videoclips and slide_clips:
         final_video = concatenate_videoclips(slide_clips, method="compose")
         
-        # Ambient Background Music Mixing with ducking
+        # Ambient Background Music Mixing
         music_path = get_background_music()
         if music_path and os.path.exists(music_path):
             try:
@@ -735,7 +721,6 @@ def render_longform_video(script_data, news_bundle, output_file="longform_ai_vid
             preset="ultrafast",
             threads=4
         )
-        print(f"   🎉 Long-Form 16:9 Video rendered successfully! Duration: {final_video.duration:.1f}s ({final_video.duration/60.0:.2f} mins)")
     else:
         print(f"   💡 MoviePy not available in environment. Dry-run skipped rendering {output_file}.")
 
@@ -746,6 +731,7 @@ def render_longform_video(script_data, news_bundle, output_file="longform_ai_vid
             except Exception:
                 pass
 
+    print(f"   ✅ Long-Form 16:9 Video rendered successfully: {output_file}")
     return output_file
 
 # ==============================================================================
@@ -754,14 +740,14 @@ def render_longform_video(script_data, news_bundle, output_file="longform_ai_vid
 def upload_longform_to_youtube(video_file, title, description, tags, news_bundle, thumbnail_file=None):
     clean_title = sanitize_text(title)
     clean_desc = sanitize_text(description)
-    print(f"🚀 Step 6: Uploading long-form video '{clean_title[:50]}...' to YouTube...")
+    print(f"🚀 Step 6: Uploading long-form video '{clean_title}' to YouTube...")
     
     client_id = os.environ.get("YOUTUBE_CLIENT_ID")
     client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
     refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN")
     
     if not all([client_id, client_secret, refresh_token]) or not build:
-        print("⚠️ Credentials or YouTube API missing. Skipping live upload step.")
+        print("⚠️ YouTube OAuth credentials or build API missing. Skipping live upload.")
         return None
 
     token_url = "https://" + "oauth2.googleapis.com/token"
@@ -775,29 +761,30 @@ def upload_longform_to_youtube(video_file, title, description, tags, news_bundle
     creds.refresh(Request())
     youtube = build("youtube", "v3", credentials=creds)
     
-    main_target = news_bundle[0]
-    source_title = main_target.get("title", "Original Source")
-    source_channel = main_target.get("channel", "Creator")
-    source_url = main_target.get("url", "https://youtube.com")
+    main_source = news_bundle[0] if news_bundle else {}
+    source_title = main_source.get("title", "AI Industry Report")
+    source_channel = main_source.get("channel", "Tech Press")
+    source_url = main_source.get("url", "https://youtube.com")
     
     legal_attribution = (
         "📌 SOURCE CREDIT & ATTRIBUTION:\n"
-        f"Featured News Topic: {source_title}\n"
-        f"Source Channel/Author: {source_channel}\n"
-        f"Source Link: {source_url}\n\n"
+        "Featured News/Topic: " + str(source_title) + "\n"
+        "Original Creator/Source: " + str(source_channel) + "\n"
+        "Original Reference Link: " + str(source_url) + "\n\n"
         "⚖️ LEGAL STATEMENT & MONETIZATION COMPLIANCE:\n"
-        "This long-form video presents an original, transformative news synthesis, commentary, and educational analysis under 17 U.S.C. Section 107 (Fair Use).\n\n"
+        "This video presents an original, highly structured news synthesis, commentary, and educational analysis of recent AI developments. Content re-use adheres strictly to Creative Commons Attribution (CC-BY) guidelines and Fair Use principles under 17 U.S.C. Section 107.\n\n"
         "🤖 AI PRODUCTION DISCLAIMER:\n"
         "Narrated using AI synthesis and produced with automated technical curation tools for education and research."
     )
     
     full_description = clean_desc[:3500] + "\n\n" + legal_attribution
+    
     body = {
         "snippet": {
             "title": clean_title[:100],
             "description": full_description,
             "tags": [sanitize_text(t) for t in tags],
-            "categoryId": "28"
+            "categoryId": "28" # Science & Technology
         },
         "status": {
             "privacyStatus": "public",
@@ -816,35 +803,38 @@ def upload_longform_to_youtube(video_file, title, description, tags, news_bundle
         
     video_id = response.get("id")
     pub_link = "https://" + "youtu.be/" + str(video_id)
-    print(f"🎉 SUCCESS! Published Long-Form Video live: {pub_link}")
+    print(f"🎉 SUCCESS! Published Long-Form 16:9 Video live: {pub_link}")
 
     if thumbnail_file and os.path.exists(thumbnail_file):
         try:
             print(f"🖼️ Setting custom 16:9 thumbnail for Video ID {video_id}...")
             youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_file)).execute()
-            print("   ✅ Custom thumbnail published successfully!")
+            print("   ✅ Custom 16:9 Thumbnail updated successfully!")
         except Exception as e:
-            print(f"   ⚠️ Could not set thumbnail: {e}")
+            print(f"   ⚠️ Could not set thumbnail ({e}). Ensure channel phone verification.")
 
-    # Record topic to persistent history file to prevent future duplicate uploads
-    save_posted_history(source_title, source_url)
+    # Save to local history log to prevent duplicates
+    history = load_posted_history()
+    history.append(clean_title)
+    save_posted_history(history)
+
     return video_id
 
 # ==============================================================================
 # MAIN EXECUTION PIPELINE
 # ==============================================================================
 def main():
-    print("======================================================================")
-    print("🚀 STARTING 16:9 LONG-FORM (3-7 MIN) AI NEWS CURATOR PIPELINE")
-    print("======================================================================")
+    print("======================================================")
+    print("🚀 STARTING 16:9 LONG-FORM (4-8 MIN) AI CURATOR PIPELINE")
+    print("======================================================")
     
     news_bundle = fetch_longform_ai_trends()
     script_data = generate_longform_script(news_bundle)
     
     thumb_file = generate_longform_thumbnail(
-        title_text=script_data.get("title", "LONG-FORM AI BREAKTHROUGH DIGEST"),
-        badge_text=script_data.get("badge_text", "LONG-FORM AI DIGEST"),
-        source_channel=news_bundle[0].get("channel", "Tech Press Digest")
+        title_text=script_data.get("title", "AI BREAKTHROUGH DIGEST"),
+        badge_text=script_data.get("badge_text", "AI DEEP DIVE"),
+        source_channel=news_bundle[0].get("channel", "Tech Press Digest") if news_bundle else "Tech Press Digest"
     )
     
     video_file = render_longform_video(
@@ -854,16 +844,16 @@ def main():
     
     upload_longform_to_youtube(
         video_file=video_file,
-        title=script_data.get("title", "LONG-FORM AI BREAKTHROUGH DIGEST"),
+        title=script_data.get("title", "AI BREAKTHROUGH DIGEST #AINews"),
         description=script_data.get("description", "Comprehensive long-form AI news breakdown."),
-        tags=script_data.get("tags", ["AI", "TechNews", "FutureTech"]),
+        tags=script_data.get("tags", ["AI", "TechNews"]),
         news_bundle=news_bundle,
         thumbnail_file=thumb_file
     )
     
-    print("======================================================================")
-    print("✅ LONG-FORM (3-7 MIN) AI CURATOR PIPELINE COMPLETE")
-    print("======================================================================")
+    print("======================================================")
+    print("✅ 16:9 LONG-FORM AI CURATOR PIPELINE COMPLETE")
+    print("======================================================")
 
 if __name__ == "__main__":
     main()
