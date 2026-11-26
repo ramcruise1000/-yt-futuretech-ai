@@ -216,159 +216,84 @@ def fetch_presenter_ai_trends():
 # ==============================================================================
 # STEP 2: Script Generation (14 Slides, 5+ Minutes Runtime)
 # ==============================================================================
-def generate_presenter_script(news_target):
-    """
-    Uses Gemini / Groq / OpenRouter with local procedural fallback to construct 
-    a 14-slide Virtual Studio broadcast script (~5-6 minutes runtime).
-    """
+def generate_presenter_script(news_bundle):
     print("📝 Step 2: Generating 14-slide Virtual Studio broadcast script (~5-6 minutes runtime)...")
-    
-    target_item = news_target[0] if isinstance(news_target, list) else news_target
-    title_orig = target_item.get("title", "AI Breakthrough Update")
-    channel_orig = target_item.get("channel", "AI Tech Wire")
-    desc_orig = target_item.get("description", "")[:300]
-    clean_target_short = sanitize_text(title_orig)[:40]
-    
+    main_target = news_bundle[0]
+    clean_title = sanitize_text(main_target["title"])
+    source_channel = main_target["channel"]
+
+    topics_summary = "\n".join([
+        f"- Story {i+1}: '{item['title']}' from {item['channel']}"
+        for i, item in enumerate(news_bundle)
+    ])
+
     prompt_lines = [
         "You are an expert AI Virtual Studio News Anchor creating a comprehensive 5-to-6 minute broadcast video.",
-        "",
-        "TOPIC TO COVER:",
-        f"- Title: '{title_orig}'",
-        f"- Channel/Press: '{channel_orig}'",
-        f"- Details: '{desc_orig}'",
-        "",
-        "INSTRUCTIONS:",
-        "1. Produce an exciting, highly structured 14-slide Virtual Studio broadcast script.",
-        "2. CRITICAL: Each slide MUST contain 60 to 75 words of exciting, clear, educational spoken commentary (~24 seconds per slide = 5.5 minutes total runtime).",
+        "TOPICS TO COVER:",
+        topics_summary,
+        "RULES:",
+        "1. Produce an exciting 14-slide broadcast script.",
+        "2. Each slide must contain 60 to 75 words of spoken commentary (~24 seconds per slide = 5.5 minutes total).",
         "3. Provide high-SEO Title, Description with timestamps, 15 Tags, and Badge labels.",
         "4. Comply 100% with YouTube Fair Use and Monetization rules.",
-        "",
-        "Return ONLY valid JSON with keys: title, description, tags, badge_text, slides (list of 14 objects with badge, text, highlight_word)."
+        "Return ONLY valid JSON with keys: title, description, tags, badge_text, slides (list of objects with badge, text, highlight_word)."
     ]
     prompt = "\n".join(prompt_lines)
 
-    # 1. Try Gemini Models
     gemini_key = os.environ.get("GEMINI_API_KEY")
     if gemini_key and genai:
         for g_model in ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]:
             try:
                 client = genai.Client(api_key=gemini_key)
-                response = client.models.generate_content(
-                    model=g_model,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(response_mime_type="application/json")
-                )
+                response = client.models.generate_content(model=g_model, contents=prompt, config=types.GenerateContentConfig(response_mime_type="application/json"))
                 if response and response.text:
                     parsed = json.loads(response.text)
                     if "slides" in parsed and len(parsed["slides"]) >= 8:
-                        print(f"   ✅ Gemini ({g_model}) generated {len(parsed['slides'])} broadcast slides successfully!")
+                        print(f"   ✅ Gemini ({g_model}) script success!")
                         return parsed
-            except Exception as g_err:
-                print(f"   ⚠️ Gemini model '{g_model}' note: {g_err}")
+            except Exception as e:
+                print(f"   ⚠️ Gemini model '{g_model}' note: {e}")
 
-    # 2. Try Groq Models
     groq_key = os.environ.get("GROQ_API_KEY")
     if groq_key and Groq:
-        for q_model in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"]:
+        for q_model in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]:
             try:
                 client = Groq(api_key=groq_key)
-                completion = client.chat.completions.create(
-                    model=q_model,
-                    messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"}
-                )
+                completion = client.chat.completions.create(model=q_model, messages=[{"role": "user", "content": prompt}], response_format={"type": "json_object"})
                 if completion.choices and completion.choices[0].message.content:
                     parsed = json.loads(completion.choices[0].message.content)
                     if "slides" in parsed and len(parsed["slides"]) >= 8:
-                        print(f"   ✅ Groq ({q_model}) generated {len(parsed['slides'])} broadcast slides successfully!")
+                        print(f"   ✅ Groq ({q_model}) script success!")
                         return parsed
-            except Exception as q_err:
-                print(f"   ⚠️ Groq model '{q_model}' note: {q_err}")
+            except Exception as e:
+                print(f"   ⚠️ Groq model '{q_model}' note: {e}")
 
-    # 3. Procedural Fallback Generator (Guarantees 14 Slides for 5.5 Mins Output)
-    print("   💡 Using local procedural Virtual Studio broadcast script generator (14 detailed slides, ~5.5 mins)...")
-    clean_title = sanitize_text(title_orig)
-    
+    print("   💡 Using local procedural 14-slide Virtual Studio broadcast generator...")
+    clean_short = clean_title[:45]
     slides = [
-        {
-            "badge": "VIRTUAL STUDIO INTRO",
-            "text": f"Welcome back to FutureTech AI Virtual Studio! I am Alex, your AI host. Today we are examining major artificial intelligence developments, featuring '{clean_title[:50]}'. Artificial intelligence capabilities are accelerating rapidly across industry sectors.",
-            "highlight_word": "accelerating"
-        },
-        {
-            "badge": "CORE BREAKTHROUGH",
-            "text": f"Developers and AI researchers at {channel_orig} have announced groundbreaking technical milestones. This development pushes autonomous neural model performance to new height thresholds, enabling higher execution efficiency and precision.",
-            "highlight_word": "autonomous"
-        },
-        {
-            "badge": "SYSTEM ARCHITECTURE",
-            "text": "Under the hood, modern neural network architectures utilize specialized attention mechanisms and reasoning loops. These architectural innovations allow software agents to break down multi-step tasks dynamically while preserving contextual accuracy.",
-            "highlight_word": "architectural"
-        },
-        {
-            "badge": "COMPUTE & SCALE",
-            "text": "Scaling high-density GPU infrastructure is essential for real-time inference and training efficiency. Distributed compute clusters accelerate model convergence, allowing developers to deploy low-latency generative pipelines across global networks.",
-            "highlight_word": "infrastructure"
-        },
-        {
-            "badge": "ENTERPRISE WORKFLOWS",
-            "text": "Enterprise organizations across software, healthcare, and finance are integrating these agentic models directly into core operational systems. Automating repetitive data pipelines allows human teams to focus on high-level strategic problem solving.",
-            "highlight_word": "enterprise"
-        },
-        {
-            "badge": "DEVELOPER BENCHMARKS",
-            "text": "For software engineers, autonomous coding assistants now execute end-to-end task automation. From refactoring legacy codebases to automated test generation, AI engineering tools continue to redefine developer productivity benchmarks.",
-            "highlight_word": "automation"
-        },
-        {
-            "badge": "OPEN SOURCE MOVEMENT",
-            "text": "The competitive landscape between proprietary frontier API models and open-weight community models is shifting fast. Quantized local models now deliver high-tier reasoning capabilities on consumer-grade hardware, democratizing AI access globally.",
-            "highlight_word": "democratizing"
-        },
-        {
-            "badge": "DATA & PRIVACY",
-            "text": "As model autonomy expands, robust data privacy protocols and alignment guardrails become paramount. Organizations must enforce strict security boundaries to protect sensitive datasets while maintaining model transparency and trust.",
-            "highlight_word": "guardrails"
-        },
-        {
-            "badge": "MULTI-MODAL EVOLUTION",
-            "text": "Looking forward, multi-modal integration enables seamless interaction across text, vision, audio, and physical robotics. Unified neural representations allow AI systems to perceive and operate within complex digital environments.",
-            "highlight_word": "multi-modal"
-        },
-        {
-            "badge": "STRATEGIC ROADMAP",
-            "text": "Navigating this technological shift requires continuous learning and adaptive implementation. Teams that master AI tool integration today will gain a decisive competitive advantage as autonomous agents mature over the coming years.",
-            "highlight_word": "strategic"
-        },
-        {
-            "badge": "COMMUNITY DISCUSSION",
-            "text": f"What are your thoughts on this latest update from {channel_orig}? Share your perspectives in the comments section below, and let us know which AI models you are integrating into your personal workflows.",
-            "highlight_word": "perspectives"
-        },
-        {
-            "badge": "EXPERT VERDICT",
-            "text": "In summary, the rapid iteration of autonomous systems signals a permanent paradigm shift in technological capability. Staying informed on these trends is crucial for every developer and technology leader.",
-            "highlight_word": "paradigm"
-        },
-        {
-            "badge": "CHANNEL ANNOUNCEMENT",
-            "text": "Our team at FutureTech AI brings you daily technical coverage and architectural breakdowns. Be sure to check the description box for full source documentation and chapter breakdown timestamps.",
-            "highlight_word": "documentation"
-        },
-        {
-            "badge": "SUBSCRIBE & STAY AHEAD",
-            "text": "Thank you for watching! Don't forget to hit the subscribe button, drop a like, and click the notification bell to stay ahead of the curve with daily Virtual Studio AI analysis!",
-            "highlight_word": "Subscribe"
-        }
+        {"badge": "LIVE BROADCAST", "text": f"Welcome to FutureTech AI Studio! I am your AI Anchor. Today we analyze top artificial intelligence breakthroughs, starting with '{clean_short}'.", "highlight_word": "artificial"},
+        {"badge": "THE BREAKTHROUGH", "text": f"Researchers and engineers at {source_channel} have unveiled impressive new model architectures that push autonomous performance to unprecedented levels.", "highlight_word": "autonomous"},
+        {"badge": "SYSTEM ARCHITECTURE", "text": "Behind this breakthrough is an advanced neural execution pipeline. By coupling specialized reasoning loops with dynamic memory context, real-world task accuracy increases sharply.", "highlight_word": "reasoning"},
+        {"badge": "HARDWARE SCALING", "text": "Hardware acceleration plays a decisive role. High-bandwidth GPU clusters allow massive parallel model training, reducing latency for instant real-time inference.", "highlight_word": "parallel"},
+        {"badge": "DEVELOPER IMPACT", "text": "For software engineering teams, autonomous coding assistants now handle multi-file refactoring, test suite generation, and automated deployment scripts seamlessly.", "highlight_word": "automation"},
+        {"badge": "BENCHMARK ANALYSIS", "text": "In recent benchmark evaluations, autonomous AI models achieved record scores on complex coding and multi-step reasoning benchmarks.", "highlight_word": "benchmark"},
+        {"badge": "ENTERPRISE ADOPTION", "text": "Global enterprises across tech, finance, and healthcare are embedding these AI agent workflows directly into operational systems to scale productivity.", "highlight_word": "workflows"},
+        {"badge": "OPEN WEIGHT MOVEMENT", "text": "Simultaneously, open-weight models are advancing rapidly. Quantized 70B parameter models can now run locally on developer workstations with extreme speed.", "highlight_word": "quantized"},
+        {"badge": "SECURITY & ALIGNMENT", "text": "As model capabilities expand, AI safety researchers are enforcing strict alignment guardrails and sandboxed execution environments to guarantee data privacy.", "highlight_word": "guardrails"},
+        {"badge": "FUTURE ROADMAP", "text": "Looking ahead to the next horizon, multi-modal AI agents will seamlessly synthesize voice, vision, code, and robotics control in real-time.", "highlight_word": "seamlessly"},
+        {"badge": "STRATEGIC VERDICT", "text": "The speed of AI progress means creators and developers who integrate these autonomous agent tools today will lead the digital economy tomorrow.", "highlight_word": "lead"},
+        {"badge": "COMMUNITY COMMENTARY", "text": "What are your thoughts on this AI milestone? Drop your comments below and share which AI models you use in your daily workflow.", "highlight_word": "comments"},
+        {"badge": "CHANNEL NEWS", "text": "Stay tuned for our upcoming deep-dive technical tutorials where we build and deploy autonomous multi-agent systems live on channel.", "highlight_word": "tutorials"},
+        {"badge": "SUBSCRIBE & STAY AHEAD", "text": "Subscribe to FutureTech AI for daily long-form Virtual Studio broadcasts, technical AI deep dives, and breaking technology news!", "highlight_word": "Subscribe"}
     ]
-    
     return {
-        "title": f"AI VIRTUAL STUDIO: {clean_title[:55]} #AINews",
-        "description": f"Virtual Studio 16:9 Broadcast analyzing today's top AI breakthrough: '{clean_title}'.\n\nTimestamps:\n0:00 - Introduction\n0:45 - Core Breakthrough\n1:30 - System Architecture\n2:30 - Enterprise Workflows\n3:30 - Developer Benchmarks\n4:30 - Strategic Outlook\n\nFeatured Source: {channel_orig} ({target_item.get('url', 'https://youtube.com')})",
-        "tags": ["AI", "TechNews", "ArtificialIntelligence", "OpenAI", "Gemini", "AIAgents", "VirtualStudio", "MachineLearning"],
-        "badge_text": "AI STUDIO SHOW",
+        "title": f"AI STUDIO BROADCAST: {clean_title[:55]} #AINews",
+        "description": f"Virtual Studio AI News Broadcast analyzing '{clean_title}'.\n\nTimestamps:\n0:00 - Virtual Studio Intro\n0:45 - Breaking News Analysis\n1:45 - Architecture Deep Dive\n3:00 - Enterprise & Dev Impact\n4:30 - Final Verdict\n\nFeatured Source: {source_channel} ({main_target['url']})",
+        "tags": ["AI", "ArtificialIntelligence", "TechNews", "OpenAI", "Gemini", "AIAgents", "MachineLearning", "FutureTech"],
+        "badge_text": "VIRTUAL STUDIO AI",
         "slides": slides
     }
+
 # ==============================================================================
 # STEP 3: Multi-Voice Audio Synthesis
 # ==============================================================================
@@ -475,13 +400,12 @@ def generate_presenter_thumbnail(title_text, badge_text, source_channel, output_
 # ==============================================================================
 # STEP 5: 16:9 Virtual Studio MoviePy Video Renderer (1920x1080)
 # ==============================================================================
-def render_presenter_video(script_data, news_target, output_file="presenter_ai_video.mp4"):
+def render_presenter_video(script_data, news_bundle, output_file="presenter_ai_video.mp4"):
     print("🎬 Step 5: Rendering 16:9 Virtual Studio Presenter video (1920x1080 resolution)...")
     w, h = 1920, 1080
     slides = script_data.get("slides", [])
     total_slides = len(slides)
-    target_item = news_target[0] if isinstance(news_target, list) else news_target
-    source_channel = target_item.get("channel", "AI Tech Wire")
+    source_channel = news_bundle[0].get("channel", "AI Tech Wire")
 
     font_header = get_font(34)
     font_body = get_font(44)
@@ -626,7 +550,7 @@ def render_presenter_video(script_data, news_target, output_file="presenter_ai_v
 # ==============================================================================
 # STEP 6: YouTube Data API v3 Upload & Persistent History Logging
 # ==============================================================================
-def upload_presenter_to_youtube(video_file, title, description, tags, news_target, thumbnail_file=None):
+def upload_presenter_to_youtube(video_file, title, description, tags, news_bundle=None, news_target=None, source_target=None, thumbnail_file=None):
     clean_title = sanitize_text(title)
     clean_desc = sanitize_text(description)
     print(f"🚀 Step 6: Uploading Virtual Studio video '{clean_title}' to YouTube...")
@@ -715,47 +639,34 @@ def upload_presenter_to_youtube(video_file, title, description, tags, news_targe
 # ==============================================================================
 def main():
     print("======================================================================")
-    print("🚀 STARTING 12-HOUR ANIMATED AI PRESENTER PIPELINE (MULTI-VIDEO BATCH)")
+    print("🚀 STARTING 12-HOUR ANIMATED AI PRESENTER PIPELINE")
     print("======================================================================")
+    
     news_bundle = fetch_presenter_ai_trends()
-    if not news_bundle:
-        print("⚠️ No fresh topics found. Exiting.")
-        return
+    script_data = generate_presenter_script(news_bundle)
 
-    print(f"📌 Found {len(news_bundle)} unique AI news topics to process into separate videos.")
+    thumb_file = generate_presenter_thumbnail(
+        title_text=script_data.get("title", "AI STUDIO BROADCAST"),
+        badge_text=script_data.get("badge_text", "VIRTUAL STUDIO AI"),
+        source_channel=news_bundle[0].get("channel", "AI Creator")
+    )
 
-    for idx, item in enumerate(news_bundle):
-        clean_item_title = sanitize_text(item["title"])
-        print(f"\n======================================================================")
-        print(f"🎬 Processing Video {idx+1}/{len(news_bundle)}: '{clean_item_title[:50]}'")
-        print(f"======================================================================")
-        
-        script_data = generate_presenter_script(item)
-        thumb_file = f"presenter_thumbnail_{idx+1}.png"
-        generate_presenter_thumbnail(
-            title_text=script_data.get("title", "AI STUDIO BROADCAST"),
-            badge_text=script_data.get("badge_text", "VIRTUAL STUDIO AI"),
-            source_channel=item.get("channel", "AI Creator"),
-            output_file=thumb_file
-        )
-        video_file = f"presenter_ai_video_{idx+1}.mp4"
-        render_presenter_video(
-            script_data=script_data,
-            news_target=item,
-            output_file=video_file
-        )
-        upload_presenter_to_youtube(
-            video_file=video_file,
-            title=script_data.get("title", "AI STUDIO BROADCAST"),
-            description=script_data.get("description", "Virtual Studio AI News Broadcast."),
-            tags=script_data.get("tags", ["AI", "TechNews"]),
-            news_target=item,
-            thumbnail_file=thumb_file
-        )
-        print(f"✅ Completed Video {idx+1}/{len(news_bundle)}: {video_file}")
+    video_file = render_presenter_video(
+        script_data=script_data,
+        news_bundle=news_bundle
+    )
 
-    print("\n======================================================================")
-    print("✅ ALL 12-HOUR ANIMATED AI PRESENTER VIDEOS PROCESSED SUCCESSFULLY")
+    upload_presenter_to_youtube(
+        video_file=video_file,
+        title=script_data.get("title", "AI STUDIO BROADCAST"),
+        description=script_data.get("description", "Virtual Studio AI News Broadcast."),
+        tags=script_data.get("tags", ["AI", "TechNews"]),
+        news_bundle=news_bundle,
+        thumbnail_file=thumb_file
+    )
+
+    print("======================================================================")
+    print("✅ 12-HOUR ANIMATED AI PRESENTER PIPELINE COMPLETE")
     print("======================================================================")
 
 if __name__ == "__main__":

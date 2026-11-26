@@ -197,34 +197,44 @@ def fetch_longform_ai_trends():
 # ==============================================================================
 # STEP 2: Transformative Long-Form Script Generation (3-7 Mins / 12-14 Slides)
 # ==============================================================================
-def generate_longform_script(news_target):
+def generate_longform_script(news_bundle):
     """
     Uses Gemini / Groq / OpenRouter with local procedural fallback to construct 
-    a 14-slide long-form educational breakdown (~5-6 minutes runtime).
+    a 10-14 slide long-form educational breakdown (~4-5 minutes runtime).
     """
-    print("📝 Step 2: Generating 14-slide long-form educational script (~5-6 minutes runtime)...")
+    print("📝 Step 2: Generating 12-slide long-form script (~4-5 minutes runtime)...")
     
-    target_item = news_target[0] if isinstance(news_target, list) else news_target
-    title_orig = target_item.get("title", "AI Breakthrough Update")
-    channel_orig = target_item.get("channel", "Tech Press Digest")
-    desc_orig = target_item.get("description", "")[:300]
-    clean_target_short = sanitize_text(title_orig)[:40]
+    topics_summary = "\n".join([
+        f"- Topic {i+1}: '{item['title']}' by {item['channel']} ({item['description'][:150]})"
+        for i, item in enumerate(news_bundle)
+    ])
     
     prompt_lines = [
-        "You are a lead technology commentator creating a 5-to-6 minute long-form YouTube educational documentary video analyzing today's top AI developments.",
+        "You are a lead technology commentator creating a comprehensive 4-to-5 minute long-form YouTube documentary video analyzing today's top AI developments.",
         "",
-        "TOPIC TO COVER:",
-        f"- Title: '{title_orig}'",
-        f"- Channel/Press: '{channel_orig}'",
-        f"- Details: '{desc_orig}'",
+        "TOPICS TO COVER:",
+        topics_summary,
         "",
         "INSTRUCTIONS:",
-        "1. Produce an original, highly structured 14-slide script.",
-        "2. CRITICAL: Each slide MUST contain 60 to 75 words of exciting, clear, educational spoken commentary (~24 seconds per slide = 5.5 minutes total runtime).",
-        "3. Provide an engaging YouTube Title, full 1200+ character SEO Description with timestamps, 15 SEO tags, and visual badge labels.",
+        "1. Produce an original, highly structured 12-slide script.",
+        "2. Each slide must contain 35 to 50 words of exciting, clear, educational spoken commentary (~20 seconds per slide = ~4 minutes total).",
+        "3. Provide an engaging YouTube Title, full 1000+ character SEO Description with timestamps, 15 SEO tags, and visual badge labels.",
         "4. Ensure content is 100% original educational synthesis, compliant with YouTube Fair Use and Monetization rules.",
         "",
-        "Return ONLY valid JSON with keys: title, description, tags, badge_text, slides (list of 14 objects with badge, text, highlight_word)."
+        "Return ONLY valid JSON in this exact structure:",
+        "{",
+        '  "title": "AI BREAKTHROUGH DIGEST: Next-Gen Autonomous Models Changing Tech Forever",',
+        '  "description": "Deep dive into today\'s biggest AI news: OpenAI agent breakthroughs, GPU chips, and autonomous software. Timestamps:\\n0:00 - Introduction\\n1:00 - Breakthrough #1\\n2:30 - Future Impact",',
+        '  "tags": ["AI", "ArtificialIntelligence", "OpenAI", "Gemini", "TechNews", "FutureTech", "AIAgents", "MachineLearning"],',
+        '  "badge_text": "AI NEWS DIGEST",',
+        '  "slides": [',
+        '    {',
+        '      "badge": "WELCOME",',
+        '      "text": "Welcome back to FutureTech AI. Today we are analyzing major artificial intelligence breakthroughs that are transforming the tech industry.",',
+        '      "highlight_word": "breakthroughs"',
+        '    }',
+        '  ]',
+        "}"
     ]
     prompt = "\n".join(prompt_lines)
 
@@ -244,8 +254,8 @@ def generate_longform_script(news_target):
                     if "slides" in parsed and len(parsed["slides"]) >= 8:
                         print(f"   ✅ Gemini ({g_model}) generated {len(parsed['slides'])} slides successfully!")
                         return parsed
-            except Exception as g_err:
-                print(f"   ⚠️ Gemini model '{g_model}' note: {g_err}")
+            except Exception as e:
+                print(f"   ⚠️ Gemini model '{g_model}' note: {e}")
 
     # 2. Try Groq Models
     groq_key = os.environ.get("GROQ_API_KEY")
@@ -263,93 +273,86 @@ def generate_longform_script(news_target):
                     if "slides" in parsed and len(parsed["slides"]) >= 8:
                         print(f"   ✅ Groq ({q_model}) generated {len(parsed['slides'])} slides successfully!")
                         return parsed
-            except Exception as q_err:
-                print(f"   ⚠️ Groq model '{q_model}' note: {q_err}")
+            except Exception as e:
+                print(f"   ⚠️ Groq model '{q_model}' note: {e}")
 
-    # 3. Procedural Fallback Generator (Guarantees 14 Slides for 5.5 Mins Output)
-    print("   💡 Using local procedural long-form educational script generator (14 detailed slides, ~5.5 mins)...")
-    clean_title = sanitize_text(title_orig)
+    # 3. Procedural Fallback Generator (Guarantees 12 Slides for 4+ Mins Output)
+    print("   💡 Using local procedural long-form script generator (12 slides)...")
+    main_target = news_bundle[0]
+    clean_title = sanitize_text(main_target["title"])
+    source_channel = main_target["channel"]
     
     slides = [
         {
             "badge": "WELCOME & HOOK",
-            "text": f"Welcome back to FutureTech AI! Today we examine major artificial intelligence developments, starting with '{clean_title[:50]}'. Artificial intelligence capabilities are accelerating rapidly across industry sectors.",
+            "text": f"Welcome back to FutureTech AI! Today we examine major artificial intelligence developments, starting with '{clean_title[:50]}'.",
             "highlight_word": "artificial"
         },
         {
             "badge": "THE BREAKTHROUGH",
-            "text": f"Developers and AI researchers at {channel_orig} have unveiled capabilities that push autonomous systems to new performance heights. This milestone demonstrates significant gains in inference speed and contextual understanding.",
+            "text": f"Developers and AI researchers at {source_channel} have unveiled capabilities that push autonomous systems to new performance heights.",
             "highlight_word": "autonomous"
         },
         {
             "badge": "TECHNICAL INSIGHT",
-            "text": "Modern neural network architectures are leveraging specialized reasoning loops, enabling complex multi-step problem solving with high precision. By structuring execution into discrete steps, error propagation drops substantially.",
+            "text": "Modern neural network architectures are leveraging specialized reasoning loops, enabling complex multi-step problem solving with high precision.",
             "highlight_word": "reasoning"
         },
         {
             "badge": "HARDWARE & SCALE",
-            "text": "Next-generation GPU compute clusters are accelerating model training and real-time inference, dropping latency to historical lows. Advanced interconnect topologies allow thousands of chips to act as a single unified supercomputer.",
+            "text": "Next-generation GPU compute clusters are accelerating model training and real-time inference, dropping latency to historical lows.",
             "highlight_word": "accelerating"
         },
         {
             "badge": "INDUSTRY SHIFT",
-            "text": "Companies across tech, finance, and healthcare are embedding these AI workflows directly into their enterprise pipelines. Automating repetitive data transformations allows engineering teams to focus on strategic product innovation.",
+            "text": "Companies across tech, finance, and healthcare are embedding these AI workflows directly into their enterprise pipelines.",
             "highlight_word": "workflows"
         },
         {
             "badge": "DEVELOPER ADVANTAGE",
-            "text": "For software engineers, autonomous coding assistants now execute end-to-end task automation, refactoring complex codebases in seconds. Automated code generation reduces cycle times from days to mere minutes.",
+            "text": "For software engineers, autonomous coding assistants now execute end-to-end task automation, refactoring complex codebases in seconds.",
             "highlight_word": "automation"
         },
         {
             "badge": "OPEN SOURCE vs PROPRIETARY",
-            "text": "The gap between proprietary frontier models and open-weight models continues to shrink, democratizing AI access globally. High-performance quantized models enable developers to run sovereign AI systems locally.",
+            "text": "The gap between proprietary frontier models and open-weight models continues to shrink, democratizing AI access globally.",
             "highlight_word": "democratizing"
         },
         {
             "badge": "SECURITY & SAFETY",
-            "text": "With increased capability comes a stronger focus on alignment, guardrails, and data privacy to prevent unexpected model behaviors. Robust evaluation frameworks ensure safety without impeding rapid technological progress.",
+            "text": "With increased capability comes a stronger focus on alignment, guardrails, and data privacy to prevent unexpected model behaviors.",
             "highlight_word": "guardrails"
         },
         {
-            "badge": "MULTI-MODAL HORIZONS",
-            "text": "Multi-modal neural systems seamlessly process text, audio, vision, and real-time environment streams simultaneously. This unified perception layer lays the foundation for embodied artificial intelligence and robotics.",
-            "highlight_word": "multi-modal"
-        },
-        {
             "badge": "FUTURE ROADMAP",
-            "text": "Looking ahead, agentic AI systems will soon manage multi-modal streams, interacting seamlessly via voice, vision, and code. Dynamic tool selection enables agents to orchestrate software APIs autonomously.",
+            "text": "Looking ahead, agentic AI systems will soon manage multi-modal streams, interacting seamlessly via voice, vision, and code.",
             "highlight_word": "seamlessly"
         },
         {
             "badge": "KEY TAKEAWAY",
-            "text": "The speed of innovation means creators and developers who adopt these tools early will hold an immense competitive advantage. Embracing agentic workflows represents a permanent shift in technical productivity.",
+            "text": "The speed of innovation means creators and developers who adopt these tools early will hold a immense competitive advantage.",
             "highlight_word": "advantage"
         },
         {
             "badge": "COMMUNITY COMMENTARY",
-            "text": f"What do you think about this breakthrough from {channel_orig}? Let us know in the comments below which AI model you rely on daily, and how you deploy autonomous systems.",
+            "text": "What do you think about this breakthrough? Let us know in the comments below which AI model you rely on daily.",
             "highlight_word": "comments"
         },
         {
-            "badge": "EXPERT VERDICT",
-            "text": "In summary, autonomous AI models represent the fastest-growing frontier in modern computer science. Staying informed on architecture changes ensures your projects remain cutting-edge.",
-            "highlight_word": "frontier"
-        },
-        {
             "badge": "SUBSCRIBE & STAY AHEAD",
-            "text": "Subscribe to FutureTech AI for daily long-form deep dives into artificial intelligence, machine learning, and future technology! Click the bell icon to never miss an update.",
+            "text": "Subscribe to FutureTech AI for daily long-form deep dives into artificial intelligence, machine learning, and future technology!",
             "highlight_word": "Subscribe"
         }
     ]
     
     return {
         "title": f"AI BREAKTHROUGH DIGEST: {clean_title[:55]} #AINews",
-        "description": f"Comprehensive long-form breakdown of today's top AI news including '{clean_title}'.\n\nTimestamps:\n0:00 - Introduction\n0:45 - Main Breakthrough\n1:40 - Technical Analysis\n2:40 - Industry Impact\n3:40 - Final Verdict\n\nFeatured Source: {channel_orig} ({target_item.get('url', 'https://youtube.com')})",
+        "description": f"Comprehensive long-form breakdown of today's top AI news including '{clean_title}'.\n\nTimestamps:\n0:00 - Introduction\n0:40 - Main Breakthrough\n1:40 - Technical Analysis\n2:40 - Industry Impact\n3:40 - Final Verdict\n\nFeatured Source: {source_channel} ({main_target['url']})",
         "tags": ["AI", "TechNews", "ArtificialIntelligence", "OpenAI", "Gemini", "AIAgents", "MachineLearning", "FutureTech"],
         "badge_text": "AI DEEP DIVE",
         "slides": slides
     }
+
 # ==============================================================================
 # STEP 3: Multi-Voice Audio Synthesis Engine
 # ==============================================================================
@@ -467,7 +470,7 @@ def generate_longform_thumbnail(title_text, badge_text, source_channel, output_f
 # ==============================================================================
 # STEP 5: 16:9 Long-Form Widescreen Video Renderer (1920x1080)
 # ==============================================================================
-def render_longform_video(script_data, news_target, output_file="longform_ai_video.mp4"):
+def render_longform_video(script_data, news_bundle, output_file="longform_ai_video.mp4"):
     """
     Renders a 16:9 widescreen (1920x1080) animated video with 10-14 slides,
     glowing yellow word-highlights, scanlines, ducked ambient music, and progress bars.
@@ -477,8 +480,7 @@ def render_longform_video(script_data, news_target, output_file="longform_ai_vid
     w, h = 1920, 1080
     slides = script_data.get("slides", [])
     total_slides = len(slides)
-    target_item = news_target[0] if isinstance(news_target, list) else news_target
-    source_channel = target_item.get("channel", "Tech Press Digest")
+    source_channel = news_bundle[0].get("channel", "Tech Press Digest")
     
     font_header = get_font(36)
     font_body = get_font(46)
@@ -615,7 +617,7 @@ def render_longform_video(script_data, news_target, output_file="longform_ai_vid
 # ==============================================================================
 # STEP 6: YouTube Data API v3 Long-Form Video & SEO Publishing
 # ==============================================================================
-def upload_longform_to_youtube(video_file, title, description, tags, news_target, thumbnail_file=None):
+def upload_longform_to_youtube(video_file, title, description, tags, news_bundle=None, news_target=None, source_target=None, thumbnail_file=None):
     clean_title = sanitize_text(title)
     clean_desc = sanitize_text(description)
     print(f"🚀 Step 6: Uploading long-form 16:9 video '{clean_title}' to YouTube...")
@@ -639,9 +641,19 @@ def upload_longform_to_youtube(video_file, title, description, tags, news_target
     creds.refresh(Request())
     youtube = build("youtube", "v3", credentials=creds)
     
-    source_title = news_bundle[0].get("title", "Original AI News")
-    source_channel = news_bundle[0].get("channel", "Tech Digest")
-    source_url = news_bundle[0].get("url", "https://youtube.com")
+    target_item = {}
+    if isinstance(news_bundle, list) and len(news_bundle) > 0:
+        target_item = news_bundle[0]
+    elif isinstance(news_bundle, dict):
+        target_item = news_bundle
+    elif news_target and isinstance(news_target, dict):
+        target_item = news_target
+    elif source_target and isinstance(source_target, dict):
+        target_item = source_target
+    
+    source_title = target_item.get("title", "Original AI News")
+    source_channel = target_item.get("channel", "Tech Digest")
+    source_url = target_item.get("url", "https://youtube.com")
     
     legal_attribution = (
         "📌 SOURCE CREDIT & ATTRIBUTION:\n"
@@ -697,49 +709,36 @@ def upload_longform_to_youtube(video_file, title, description, tags, news_target
 # MAIN EXECUTION PIPELINE
 # ==============================================================================
 def main():
-    print("======================================================================")
-    print("🚀 STARTING LONG-FORM 16:9 AI CURATOR PIPELINE (MULTI-VIDEO BATCH)")
-    print("======================================================================")
+    print("======================================================")
+    print("🚀 STARTING LONG-FORM 16:9 AI CURATOR PIPELINE (3-7 MINS)")
+    print("======================================================")
+    
     news_bundle = fetch_longform_ai_trends()
-    if not news_bundle:
-        print("⚠️ No fresh topics found. Exiting.")
-        return
-
-    print(f"📌 Found {len(news_bundle)} unique AI news topics to process into separate videos.")
-
-    for idx, item in enumerate(news_bundle):
-        clean_item_title = sanitize_text(item["title"])
-        print(f"\n======================================================================")
-        print(f"🎬 Processing Video {idx+1}/{len(news_bundle)}: '{clean_item_title[:50]}'")
-        print(f"======================================================================")
-        
-        script_data = generate_longform_script(item)
-        thumb_file = f"longform_thumbnail_{idx+1}.png"
-        generate_longform_thumbnail(
-            title_text=script_data.get("title", "AI BREAKTHROUGH DIGEST"),
-            badge_text=script_data.get("badge_text", "AI DEEP DIVE"),
-            source_channel=item.get("channel", "Tech Digest"),
-            output_file=thumb_file
-        )
-        video_file = f"longform_ai_video_{idx+1}.mp4"
-        render_longform_video(
-            script_data=script_data,
-            news_target=item,
-            output_file=video_file
-        )
-        upload_longform_to_youtube(
-            video_file=video_file,
-            title=script_data.get("title", "AI BREAKTHROUGH DIGEST"),
-            description=script_data.get("description", "Long-form AI news deep dive."),
-            tags=script_data.get("tags", ["AI", "TechNews"]),
-            news_target=item,
-            thumbnail_file=thumb_file
-        )
-        print(f"✅ Completed Video {idx+1}/{len(news_bundle)}: {video_file}")
-
-    print("\n======================================================================")
-    print("✅ ALL LONG-FORM 16:9 AI CURATOR VIDEOS PROCESSED SUCCESSFULLY")
-    print("======================================================================")
+    script_data = generate_longform_script(news_bundle)
+    
+    thumb_file = generate_longform_thumbnail(
+        title_text=script_data.get("title", "AI BREAKTHROUGH DIGEST"),
+        badge_text=script_data.get("badge_text", "AI DEEP DIVE"),
+        source_channel=news_bundle[0].get("channel", "Tech Digest")
+    )
+    
+    video_file = render_longform_video(
+        script_data=script_data,
+        news_bundle=news_bundle
+    )
+    
+    upload_longform_to_youtube(
+        video_file=video_file,
+        title=script_data.get("title", "AI BREAKTHROUGH DIGEST"),
+        description=script_data.get("description", "Long-form AI news deep dive."),
+        tags=script_data.get("tags", ["AI", "TechNews"]),
+        news_bundle=news_bundle,
+        thumbnail_file=thumb_file
+    )
+    
+    print("======================================================")
+    print("✅ LONG-FORM 16:9 AI CURATOR PIPELINE COMPLETE")
+    print("======================================================")
 
 if __name__ == "__main__":
     main()
