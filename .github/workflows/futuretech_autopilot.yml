@@ -2,39 +2,89 @@ name: FutureTech AI Channel Autopilot
 
 on:
   schedule:
-    - cron: '0 14 * * *'     # 1. Main Daily Automation (14:00 UTC)
-    - cron: '30 2,14 * * *'  # 2. Viral 12H Curator Shorts (02:30 & 14:30 UTC)
-    - cron: '0 6,18 * * *'   # 3. Long-Form Widescreen Digest (06:00 & 18:00 UTC)
-    - cron: '0 0,12 * * *'   # 4. 12-Hour Animated AI Presenter Show (00:00 & 12:00 UTC)
-  workflow_dispatch:
+    # 1. Main Daily Automation Pipeline (Daily at 14:00 UTC)
+    - cron: '0 14 * * *'
+    # 2. Viral 12-Hour Curator Shorts (Twice Daily at 02:30 UTC & 14:30 UTC)
+    - cron: '30 2,14 * * *'
+    # 3. Long-Form Widescreen Deep Dives (Twice Daily at 06:00 UTC & 18:00 UTC)
+    - cron: '0 6,18 * * *'
+    # 4. 12-Hour Animated AI Presenter Multi-Video Show (Every 12 hours at 00:00 UTC & 12:00 UTC)
+    - cron: '0 0,12 * * *'
+  workflow_dispatch: # Allows manual execution anytime from GitHub Actions UI
 
 jobs:
-  # (Previous jobs remain untouched) ...
-
-  run-12h-animated-presenter:
+  run-main-autopilot:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install Dependencies
-        run: |
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with: { python-version: '3.10' }
+      - run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
           pip install --upgrade edge-tts gtts
           pip install requests feedparser moviepy==1.0.3 pillow==9.5.0 numpy google-api-python-client google-auth-oauthlib google-genai groq
-
-      - name: Run 12-Hour Animated AI Presenter Pipeline
-        env:
+      - env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-        run: |
-          python animated_presenter_pipeline.py
+        run: python pipeline.py
+
+  run-12h-viral-curator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with: { python-version: '3.10' }
+      - run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pip install --upgrade edge-tts gtts
+          pip install requests feedparser moviepy==1.0.3 pillow==9.5.0 numpy google-api-python-client google-auth-oauthlib google-genai groq
+      - env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: python curator_pipeline.py
+
+  run-longform-ai-curator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with: { python-version: '3.10' }
+      - run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pip install --upgrade edge-tts gtts
+          pip install requests feedparser moviepy==1.0.3 pillow==9.5.0 numpy google-api-python-client google-auth-oauthlib google-genai groq
+      - env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: python longform_curator_pipeline.py
+
+  run-12h-animated-presenter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with: { python-version: '3.10' }
+      - run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pip install --upgrade edge-tts gtts
+          pip install requests feedparser moviepy==1.0.3 pillow==9.5.0 numpy google-api-python-client google-auth-oauthlib google-genai groq
+      - env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: python animated_presenter_pipeline.py
