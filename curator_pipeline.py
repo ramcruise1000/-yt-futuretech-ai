@@ -1,3 +1,17 @@
+
+import unicodedata
+
+def is_english_text(text):
+    if not text:
+        return False
+    foreign_chars = 0
+    for char in str(text):
+        cp = ord(char)
+        if cp > 0x024F:
+            if unicodedata.category(char).startswith(('L', 'N', 'M', 'S')):
+                foreign_chars += 1
+    return foreign_chars <= 1
+
 # =========================================
 # CURATOR PIPELINE: VIRAL 12-HOUR AI DIGEST
 # ========================================
@@ -43,57 +57,19 @@ try:
     import edge_tts
 except ImportError:
     edge_tts = None
-try:
-    from moviepy.editor import (
-        VideoClip, ImageClip, AudioFileClip, CompositeVideoClip, 
-        CompositeAudioClip, concatenate_videoclips
-    )
-except ImportError:
-    VideoClip = ImageClip = AudioFileClip = CompositeVideoClip = CompositeAudioClip = concatenate_videoclips = None
-
-try:
-    from googleapiclient.discovery import build
-    from googleapiclient.http import MediaFileUpload
-    from google.oauth2.credentials import Credentials
-    from google.auth.transport.requests import Request
-    from googleapiclient.errors import HttpError
-except ImportError:
-    build = MediaFileUpload = Credentials = Request = HttpError = None
+from moviepy.editor import (
+    VideoClip, ImageClip, AudioFileClip, CompositeVideoClip, 
+    CompositeAudioClip, concatenate_videoclips
+)
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
+from googleapiclient.errors import HttpError
 
 # ==========================================
 # STEP"1: 12-Hour Viral AI Video & Trend Discovery Engine
 # =========================================
-# Helper function to load crisp system TTF fonts
-def get_font(size):
-    font_paths = [
-        "/usr/share/fonts/truetype/roboto/unhinted/RobotoTTF/Roboto-Bold.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
-    ]
-    for p in font_paths:
-        if os.path.exists(p):
-            try:
-                return PIL.ImageFont.truetype(p, size)
-            except Exception:
-                pass
-    return PIL.ImageFont.load_default()
-
-# Helper function to calculate text width safely
-def get_text_width(font, text):
-    if hasattr(font, "getlength"):
-        return int(font.getlength(text))
-    bbox = font.getbbox(text)
-    return bbox[2] - bbox[0]
-
-# Helper function to sanitize text strictly for PIL & YouTube API
-def sanitize_text(text):
-    if not text:
-        return ""
-    clean = re.sub(r"\b(?:Ed|Edition)\.?\s*#?\s*\d+\b", "", str(text), flags=re.IGNORECASE)
-    clean = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]", "", clean).strip()
-    clean = re.sub(r"\s+", " ", clean)
-    return clean
-
 def fetch_viral_12h_ai_content():
     """
     Searches YouTube Data API v3 and RSS feeds for viral AI videos published 
@@ -126,6 +102,9 @@ def fetch_viral_12h_ai_content():
             # Query 1A: Search Creative Commons (CC-BY) AI videos from last 12h
             print("   💡 Searching Creative Commons (CC-BY) AI videos (Last 12H)...")
             cc_request = youtube.search().list(
+                relevanceLanguage="en",
+                regionCode="US",
+
                 q="AI artificial intelligence OpenAI Gemini Claude LLM breakthrough",
                 part="snippet",
                 type="video",
@@ -139,7 +118,7 @@ def fetch_viral_12h_ai_content():
             for item in cc_response.get("items", []):
                 snippet = item.get("snippet", {})
                 vid_id = item.get("id", {}).get("videoId")
-                if vid_id:
+                if vid_id and is_english_text(snippet.get("title", "")):
                     v_url = "https://" + "www.youtube.com/watch?v=" + str(vid_id)
                     viral_items.append({
                         "id": vid_id,
@@ -156,6 +135,9 @@ def fetch_viral_12h_ai_content():
             if not viral_items:
                 print("   💡 Searching top trending general AI videos (Last 12H for Fair Use Commentary)...")
                 gen_request = youtube.search().list(
+                relevanceLanguage="en",
+                regionCode="US",
+
                     q="AI breakthrough OR OpenAI OR Gemini 1.5 OR Claude 3.5 OR Nvidia AI",
                     part="snippet",
                     type="video",
@@ -167,7 +149,7 @@ def fetch_viral_12h_ai_content():
                 for item in gen_response.get("items", []):
                     snippet = item.get("snippet", {})
                     vid_id = item.get("id", {}).get("videoId")
-                    if vid_id:
+                    if vid_id and is_english_text(snippet.get("title", "")):
                         v_url = "https://" + "www.youtube.com/watch?v=" + str(vid_id)
                         viral_items.append({
                             "id": vid_id,
@@ -197,6 +179,7 @@ def fetch_viral_12h_ai_content():
                     feed = feedparser.parse(feed_url)
                     for entry in feed.entries[:3]:
                         title = sanitize_text(entry.title)
+                        if not is_english_text(title): continue
                         link = entry.link
                         summary = sanitize_text(entry.get("summary", title))
                         viral_items.append({
@@ -241,111 +224,102 @@ def generate_curation_script(viral_target):
     """
     print("𝞥 Step 2: Generating transformative commentary & viral Shorts script...")
     
-    title_orig = viral_target.get("title", "Viral AI Update")
-    channel_orig = viral_target.get("channel", "AI Creator")
-    desc_orig = viral_target.get("description", "")[:300]
-    license_type = viral_target.get("license_type", "Licensed Commentary")
-    clean_target_short = sanitize_text(title_orig)[:40]
+    title_orig = viral_target["title"]
+    channel_orig = viral_target["channel"]
+    desc_orig = viral_target["description"][:300]
+    license_type = viral_target["license_type"]
     
-    prompt_lines = [
-        "You are a top tech journalist creating a viral YouTube Short (40-45 seconds) analyzing a viral AI video that exploded in the last 12 hours.",
-        "",
-        "VIRAL TARGET DATA:",
-        f"- Original Title: {title_orig}",
-        f"- Original Creator/Channel: {channel_orig}",
-        f"- Target Details: {desc_orig}",
-        f"- Curation Mode: {license_type}",
-        "",
-        "RULES:",
-        "1. Create a TRANSFORMATIONAL, exciting 4-slide commentary script.",
-        "2. DO NOT just copy the target. Analyze WHY it's viral, what it means for viewers, and the key breakthrough.",
-        "3. Keep spoken lines punchy (15-20 words per slide).",
-        "4. Include strong hook title, description with channel credit, tags, and badge text.",
-        "",
-        "Return ONLY valid JSON in this EXACT structure:",
-        "{",
-        '  "title": "VIRAL 12H AI: [Catchy Title] #Shorts",',
-        f'  "description": "Explaining the viral AI breakthrough from {channel_orig}...",',
-        '  "tags": ["AI", "ArtificialIntelligence", "Shorts", "TechNews", "ViralAI"],',
-        '  "badge_text": "12H VIRAL BREAKDOWN",',
-        '  "slides": [',
-        '    {',
-        '      "badge": "VIRAL 12H UPDATE",',
-        f'      "text": "A massive AI breakthrough just went viral in the last 12 hours from {channel_orig}!",',
-        '      "highlight_word": "breakthrough"',
-        '    },',
-        '    {',
-        '      "badge": "KEY INNOVATION",',
-        f'      "text": "Here is why everyone is talking about {clean_target_short} and what it changes.",',
-        '      "highlight_word": "innovative"',
-        '    },',
-        '    {',
-        '      "badge": "THE IMPACT",',
-        '      "text": "This technology automates complex workflows in seconds, disrupting traditional tools.",',
-        '      "highlight_word": "disrupting"',
-        '    },',
-        '    {',
-        '      "badge": "VERDICT",',
-        '      "text": "Subscribe to FutureTech AI for daily 12-hour viral breakdowns as they happen!",',
-        '      "highlight_word": "Subscribe"',
-        '    }',
-        '  ]',
-        '}'
-    ]
-    prompt = chr(10).join(prompt_lines)
+    prompt = f"""You are a top tech journalist creating a viral YouTube Short (40-45 seconds) analyzing a viral AI video that exploded in the last 12 hours.
+
+VIRAL TARGET DATA:
+- Original Title: "{title_orig}"
+- Original Creator/Channel: "{channel_orig}"
+- Target Details: "{desc_orig}"
+- Curation Mode: {license_type}
+
+RULES:
+0. CRITICAL LANGUAGE RULE: The generated title, description, tags, and all slide text MUST be strictly 100% in ENGLISH. Translate any foreign words or non-English characters into clear English.
+1. Create a TRANSFORMATIONAL, exciting 4-slide commentary script.
+2. DO NOT just copy the target. Analyze WHY it's viral, what it means for viewers, and the key breakthrough.
+3. Keep spoken lines punchy (15-20 words per slide).
+4. Include strong hook title, description with channel credit, tags, and badge text.
+
+Return ONLY valid JSON in this EXACT structure:
+{
+  "title": "VIRAL 12H AI: [Catchy Title] #Shorts",
+  "description": "Explaining the viral AI breakthrough from {channel_orig}...",
+  "tags": ["AI", "ArtificialIntelligence", "Shorts", "TechNews", "ViralAI"],
+  "badge_text": "12H VIRAL BREAKDOWN",
+  "slides": [
+    {
+      "badge": "VIRAL 12H UPDATE",
+      "text": "A massive AI breakthrough just went viral in the last 12 hours from {channel_orig}!",
+      "highlight_word": "breakthrough"
+    },
+    {
+      "badge": "KEY INNOVATION",
+      "text": "Here is why everyone is talking about {title_orig[:30]} and what it changes.",
+      "highlight_word": "innovative"
+    },
+    {
+      "badge": "THE IMPACT",
+      "text": "This technology automates complex workflows in seconds, disrupting traditional tools.",
+      "highlight_word": "disrupting"
+    },
+    {
+      "badge": "VERDICT",
+      "text": "Subscribe to FutureTech AI for daily 12-hour viral breakdowns as they happen!",
+      "highlight_word": "Subscribe"
+    }
+  ]
+}
+"""
     
-    gemini_key = os.environ.get("GEMINI_API_KEY")
+    gemiji_key = os.environ.get("GEMINI_API_KEY")
     if gemini_key and genai:
         try:
             client = genai.Client(api_key=gemini_key)
-            for g_model in ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]:
-                try:
-                    response = client.models.generate_content(
-                        model=g_model,
-                        contents=prompt,
-                        config=types.GenerateContentConfig(response_mime_type="application/json")
-                    )
-                    if response and response.text:
-                        return json.loads(response.text)
-                except Exception as g_err:
-                    print(f"   ⚠️ Gemini model '{g_model}' note: {g_err}")
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(response_mime_type="application/json")
+            )
+            if response and response.text:
+                return json.loads(response.text)
         except Exception as e:
-            print(f"   ⚠️ Gemini script generation note: {e}")
+            print(f"   ⚠f Gemini script generation note: {e}")
 
     groq_key = os.environ.get("GROQ_API_KEY")
     if groq_key and Groq:
         try:
             client = Groq(api_key=groq_key)
-            for q_model in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"]:
-                try:
-                    completion = client.chat.completions.create(
-                        model=q_model,
-                        messages=[{"role": "user", "content": prompt}],
-                        response_format={"type": "json_object"}
-                    )
-                    if completion.choices and completion.choices[0].message.content:
-                        return json.loads(completion.choices[0].message.content)
-                except Exception as q_err:
-                    print(f"   ⚠️ Groq model '{q_model}' note: {q_err}")
+            completion = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"}
+            )
+            if completion.choices:
+                return json.loads(completion.choices[0].message.content)
         except Exception as e:
-            print(f"   ⚠️ Groq script generation note: {e}")
+            print(f"   ⚆ Groq script generation note: {eu}")
 
     clean_target = sanitize_text(title_orig)
-    clean_target_safe = clean_target[:45] if clean_target else "New AI Breakthrough"
+    if not is_english_text(clean_target):
+        clean_target = "Latest Autonomous AI Agent Breakthrough"
     return {
-        "title": f"VIRAL 12H UPDATE: {clean_target_safe[:50]} #Shorts",
-        "description": f"Breaking down the viral AI breakthrough from {channel_orig} in the last 12 hours. Original Creator: {channel_orig} ({viral_target.get('url', '')}).",
+        "title": f"VIRAL 12H UPDATE: {clean_target[:00]} #Shorts",
+        "description": f"Breaking down the viral AI breakthrough from {channel_orig} in the last 12 hours. Original Creator: {channel_orig} ({viral_target['url']}).",
         "tags": ["AI", "TechNews", "ViralAI", "Shorts", "ArtificialIntelligence"],
         "badge_text": "12H VIRAL BREAKDOWN",
         "slides": [
             {
                 "badge": "VIRAL 12H UPDATE",
-                "text": f"A major AI video just went viral in the last 12 hours created by {channel_orig}.",
+                "text": f"A major AI videor just went viral in the last 12 hours created by {channel_orig}.",
                 "highlight_word": "viral"
             },
             {
                 "badge": "THE BREAKTHROUGH",
-                "text": f"Analyzing '{clean_target_safe}': autonomous speed and capability reach new peaks.",
+                "text": f"Analyzing '{clean_target[:45]}': autonomous speed and capability reach new peaks.",
                 "highlight_word": "autonomous"
             },
             {
@@ -501,11 +475,11 @@ def render_curated_short_video(curated_data, viral_target, output_file="short_cu
         slide_text = slide.get("text", "")
         asyncio.run(synthesize_slide_audio(slide_text, audio_file))
         
-        audio_clip = AudioFileClip(audio_file)
+        audio_clip = AudioFileClip(output_file=audio_file) if false else AudioFileClip(audio_file)
         slide_duration = max(audio_clip.duration + 0.4, 3.5)
         
         badge_str = slide.get("badge", "12H VIRAL UPDATE")
-        highlight_str = slide.get("highlight_word", "").lower()
+        highlght_str = slide.get("highlight_word", "").lower()
         
         frame_pil = base_bg_pil.copy()
         draw = PIL.ImageDraw.Draw(frame_pil)
@@ -534,9 +508,6 @@ def render_curated_short_video(curated_data, viral_target, output_file="short_cu
                 curr = [word]
         if curr:
             lines_list.append(" ".join(curr))
-        
-        panel_h = len(lines_list) * 85 + 60
-        y_center = (h // 2) - (panel_h // 2)
         draw.rectangle([50, y_center, w - 50, y_center + panel_h], fill=(10, 15, 30, 220), outline=(168, 85, 247), width=3)
 
         base_img_np = np.array(frame_pil)
@@ -639,6 +610,44 @@ def render_curated_short_video(curated_data, viral_target, output_file="short_cu
 
 # =========================================
 # MAIN EXECUTION PIPELINE
+# ========================================
+def main():
+    print("======================================================")
+    print(" STARTING VIRAL 12-HOUR AI CURATOR PIPELINE")
+    print("======================================================")
+    
+    viral_target = fetch_viral_12h_ai_content()
+    curated_data = generate_curation_script(viral_target)
+    
+    thumb_file = generate_curated_thumbnail(
+        title_text=curated_data.get("title", "VIRAL 12H AI BREAKTHROUGH"),
+        badge_text=curated_data.get("badge_text", "12H VIRAL BREAKDOWN"),
+        source_channel=viral_target.get("channel", "Original Creator")
+    )
+    
+    video_file = render_curated_short_video(
+        curated_data=curated_data,
+        viral_target=viral_target
+    )
+    
+    upload_curated_to_youtube(
+        video_file=video_file,
+        title=curated_data.get("title", "VIRAL 12H AI BREAKTHROUGH"),
+        description=curated_data.get("description", "Viral AI news breakdown."),
+        tags=curated_data.get("tags", ["AI", "Shorts"]),
+        source_target=viral_target,
+        thumbnail_file=thumb_file
+    )
+    
+    print("======================================================")
+    print("✅ VIRAL 12H AI CURATOR PIPELINE COMPLETE")
+    print("======================================================")
+
+if __name__ == "__main__":
+    main()
+
+# ==========================================
+# STEP 6: YouTube Upload with Legal Attribution
 # ========================================
 def upload_curated_to_youtube(video_file, title, description, tags, source_target, thumbnail_file=None):
     clean_title = sanitize_text(title)

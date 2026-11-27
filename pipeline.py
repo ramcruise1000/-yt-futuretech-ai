@@ -1,3 +1,16 @@
+import unicodedata
+
+def is_english_text(text):
+    if not text:
+        return False
+    foreign_chars = 0
+    for char in str(text):
+        cp = ord(char)
+        if cp > 0x024F:
+            if unicodedata.category(char).startswith(("L", "N", "M", "S")):
+                foreign_chars += 1
+    return foreign_chars <= 1
+
 import os
 import re
 import json
@@ -106,6 +119,7 @@ def get_trending_news_and_learning_topic():
                     
                     if any(kw in full_text for kw in ai_keywords):
                         clean_title = sanitize_text(title.replace('"', "'").replace("\n", " "))
+                        if not is_english_text(clean_title): continue
                         clean_summary = sanitize_text(summary.replace('"', "'").replace("\n", " "))
                         news_items.append({"title": clean_title, "summary": clean_summary})
         except Exception as e:
@@ -339,33 +353,10 @@ Return ONLY a valid JSON object with this exact structure:
 # STEP 2: Voiceover Audio Generator
 # ==========================================
 async def synthesize_slide_audio(text, output_file):
-    voices = ["en-US-ChristopherNeural", "en-US-GuyNeural", "en-US-EricNeural", "en-US-AriaNeural"]
-    for attempt in range(5):
-        voice = voices[attempt % len(voices)]
-        try:
-            communicate = edge_tts.Communicate(text, voice)
-            await communicate.save(output_file)
-            if os.path.exists(output_file) and os.path.getsize(output_file) > 1000:
-                return output_file
-        except Exception as e:
-            print(f"   ⚠️ edge-tts attempt {attempt+1}/5 failed ({e}). Retrying in {1.5*(attempt+1):.1f}s...")
-            await asyncio.sleep(1.5 * (attempt + 1))
-            
-    # Fallback to gTTS if edge-tts endpoints are temporarily blocked/throttled
-    try:
-        print("   ⚠️ edge-tts endpoints unavailable. Switching to gTTS fallback...")
-        from gtts import gTTS
-        tts = gTTS(text=text, lang='en')
-        tts.save(output_file)
-        if os.path.exists(output_file) and os.path.getsize(output_file) > 1000:
-            return output_file
-    except Exception as e:
-        print(f"   ⚠️ gTTS fallback error: {e}")
-
-    # Final emergency check
-    if os.path.exists(output_file) and os.path.getsize(output_file) > 100:
-        return output_file
-    raise RuntimeError(f"Failed to synthesize voiceover audio for slide: '{text[:40]}...'")
+    voice = "en-US-ChristopherNeural"
+    communicate = edge_tts.Communicate(text, voice)
+    await communicate.save(output_file)
+    return output_file
 
 def get_background_music(output_file="bg_music.mp3"):
     if os.path.exists(output_file):
