@@ -174,7 +174,7 @@ def fetch_presenter_ai_trends():
         try:
             if feedparser:
                 feed = feedparser.parse(feed_url)
-                for entry in feed.entries[:4]:
+                for entry in feed.entries[:5]:
                     f_title = sanitize_text(entry.title)
                     if not is_duplicate_topic(f_title, uploaded_titles, local_history):
                         news_items.append({
@@ -214,26 +214,26 @@ def fetch_presenter_ai_trends():
     return selected_bundle
 
 # ==============================================================================
-# STEP 2: Script Generation (14 Slides, 5+ Minutes Runtime)
+# STEP 2: Script Generation (18-20 Slides, 8+ Minutes Runtime)
 # ==============================================================================
 def generate_presenter_script(news_bundle):
-    print("📝 Step 2: Generating 14-slide Virtual Studio broadcast script (~5-6 minutes runtime)...")
-    main_target = news_bundle[0]
-    clean_title = sanitize_text(main_target["title"])
-    source_channel = main_target["channel"]
+    print("📝 Step 2: Generating 18-slide Virtual Studio broadcast script (~8-10 minutes runtime)...")
+    main_target = news_bundle[0] if isinstance(news_bundle, list) else news_bundle
+    clean_title = sanitize_text(main_target.get("title", "AI News Breakthrough"))
+    source_channel = main_target.get("channel", "AI Tech Wire")
 
     topics_summary = "\n".join([
-        f"- Story {i+1}: '{item['title']}' from {item['channel']}"
-        for i, item in enumerate(news_bundle)
+        f"- Story {i+1}: '{item.get('title')}' from {item.get('channel')}"
+        for i, item in enumerate(news_bundle if isinstance(news_bundle, list) else [news_bundle])
     ])
 
     prompt_lines = [
-        "You are an expert AI Virtual Studio News Anchor creating a comprehensive 5-to-6 minute broadcast video.",
+        "You are an expert AI Virtual Studio News Anchor creating a comprehensive 8-to-10 minute broadcast video.",
         "TOPICS TO COVER:",
         topics_summary,
         "RULES:",
-        "1. Produce an exciting 14-slide broadcast script.",
-        "2. Each slide must contain 60 to 75 words of spoken commentary (~24 seconds per slide = 5.5 minutes total).",
+        "1. Produce an exciting 18-slide broadcast script.",
+        "2. Each slide MUST contain 70 to 90 words of spoken commentary (~30 seconds per slide = 8.5 minutes total runtime).",
         "3. Provide high-SEO Title, Description with timestamps, 15 Tags, and Badge labels.",
         "4. Comply 100% with YouTube Fair Use and Monetization rules.",
         "Return ONLY valid JSON with keys: title, description, tags, badge_text, slides (list of objects with badge, text, highlight_word)."
@@ -248,8 +248,8 @@ def generate_presenter_script(news_bundle):
                 response = client.models.generate_content(model=g_model, contents=prompt, config=types.GenerateContentConfig(response_mime_type="application/json"))
                 if response and response.text:
                     parsed = json.loads(response.text)
-                    if "slides" in parsed and len(parsed["slides"]) >= 8:
-                        print(f"   ✅ Gemini ({g_model}) script success!")
+                    if "slides" in parsed and len(parsed["slides"]) >= 12:
+                        print(f"   ✅ Gemini ({g_model}) script success with {len(parsed['slides'])} slides!")
                         return parsed
             except Exception as e:
                 print(f"   ⚠️ Gemini model '{g_model}' note: {e}")
@@ -262,33 +262,37 @@ def generate_presenter_script(news_bundle):
                 completion = client.chat.completions.create(model=q_model, messages=[{"role": "user", "content": prompt}], response_format={"type": "json_object"})
                 if completion.choices and completion.choices[0].message.content:
                     parsed = json.loads(completion.choices[0].message.content)
-                    if "slides" in parsed and len(parsed["slides"]) >= 8:
-                        print(f"   ✅ Groq ({q_model}) script success!")
+                    if "slides" in parsed and len(parsed["slides"]) >= 12:
+                        print(f"   ✅ Groq ({q_model}) script success with {len(parsed['slides'])} slides!")
                         return parsed
             except Exception as e:
                 print(f"   ⚠️ Groq model '{q_model}' note: {e}")
 
-    print("   💡 Using local procedural 14-slide Virtual Studio broadcast generator...")
+    print("   💡 Using local procedural 18-slide Virtual Studio broadcast generator (~8.5 mins)...")
     clean_short = clean_title[:45]
     slides = [
-        {"badge": "LIVE BROADCAST", "text": f"Welcome to FutureTech AI Studio! I am your AI Anchor. Today we analyze top artificial intelligence breakthroughs, starting with '{clean_short}'.", "highlight_word": "artificial"},
-        {"badge": "THE BREAKTHROUGH", "text": f"Researchers and engineers at {source_channel} have unveiled impressive new model architectures that push autonomous performance to unprecedented levels.", "highlight_word": "autonomous"},
-        {"badge": "SYSTEM ARCHITECTURE", "text": "Behind this breakthrough is an advanced neural execution pipeline. By coupling specialized reasoning loops with dynamic memory context, real-world task accuracy increases sharply.", "highlight_word": "reasoning"},
-        {"badge": "HARDWARE SCALING", "text": "Hardware acceleration plays a decisive role. High-bandwidth GPU clusters allow massive parallel model training, reducing latency for instant real-time inference.", "highlight_word": "parallel"},
-        {"badge": "DEVELOPER IMPACT", "text": "For software engineering teams, autonomous coding assistants now handle multi-file refactoring, test suite generation, and automated deployment scripts seamlessly.", "highlight_word": "automation"},
-        {"badge": "BENCHMARK ANALYSIS", "text": "In recent benchmark evaluations, autonomous AI models achieved record scores on complex coding and multi-step reasoning benchmarks.", "highlight_word": "benchmark"},
-        {"badge": "ENTERPRISE ADOPTION", "text": "Global enterprises across tech, finance, and healthcare are embedding these AI agent workflows directly into operational systems to scale productivity.", "highlight_word": "workflows"},
-        {"badge": "OPEN WEIGHT MOVEMENT", "text": "Simultaneously, open-weight models are advancing rapidly. Quantized 70B parameter models can now run locally on developer workstations with extreme speed.", "highlight_word": "quantized"},
-        {"badge": "SECURITY & ALIGNMENT", "text": "As model capabilities expand, AI safety researchers are enforcing strict alignment guardrails and sandboxed execution environments to guarantee data privacy.", "highlight_word": "guardrails"},
-        {"badge": "FUTURE ROADMAP", "text": "Looking ahead to the next horizon, multi-modal AI agents will seamlessly synthesize voice, vision, code, and robotics control in real-time.", "highlight_word": "seamlessly"},
-        {"badge": "STRATEGIC VERDICT", "text": "The speed of AI progress means creators and developers who integrate these autonomous agent tools today will lead the digital economy tomorrow.", "highlight_word": "lead"},
-        {"badge": "COMMUNITY COMMENTARY", "text": "What are your thoughts on this AI milestone? Drop your comments below and share which AI models you use in your daily workflow.", "highlight_word": "comments"},
-        {"badge": "CHANNEL NEWS", "text": "Stay tuned for our upcoming deep-dive technical tutorials where we build and deploy autonomous multi-agent systems live on channel.", "highlight_word": "tutorials"},
-        {"badge": "SUBSCRIBE & STAY AHEAD", "text": "Subscribe to FutureTech AI for daily long-form Virtual Studio broadcasts, technical AI deep dives, and breaking technology news!", "highlight_word": "Subscribe"}
+        {"badge": "LIVE BROADCAST", "text": f"Welcome to FutureTech AI Studio! I am ALEX, your AI Presenter. Today we present an in-depth broadcast analyzing major artificial intelligence developments, starting with '{clean_short}'.", "highlight_word": "artificial"},
+        {"badge": "CORE BREAKTHROUGH", "text": f"Researchers and engineers at {source_channel} have unveiled groundbreaking model capabilities that push autonomous AI task execution to unprecedented performance levels.", "highlight_word": "autonomous"},
+        {"badge": "SYSTEM ARCHITECTURE", "text": "Underneath this breakthrough lies a multi-stage neural execution engine. By linking reasoning loops directly with active context memory, the model resolves complex multi-step technical problems with high precision.", "highlight_word": "reasoning"},
+        {"badge": "COMPUTE & HARDWARE", "text": "Hardware scaling continues to drive model velocity. Ultra-fast GPU compute interconnects accelerate real-time inference and training, dropping latency to historical lows across large-scale deployments.", "highlight_word": "accelerate"},
+        {"badge": "DEVELOPER WORKFLOWS", "text": "For software engineering teams, autonomous coding agents now manage multi-file code refactoring, test suite generation, and automated cloud deployments directly within active developer pipelines.", "highlight_word": "automation"},
+        {"badge": "BENCHMARK PERFORMANCE", "text": "In official industry benchmark evaluations, these autonomous AI models established record accuracy scores on complex coding benchmarks and multi-domain reasoning tests.", "highlight_word": "benchmark"},
+        {"badge": "ENTERPRISE INTEGRATION", "text": "Global enterprises across technology, finance, and medical engineering are embedding these AI agent workflows directly into their operational systems to scale productivity exponentially.", "highlight_word": "workflows"},
+        {"badge": "OPEN WEIGHT REVOLUTION", "text": "Simultaneously, the open-weight AI ecosystem is advancing rapidly. Highly optimized quantized models can now be deployed locally on developer workstations with extreme speed and zero data leakage.", "highlight_word": "quantized"},
+        {"badge": "SAFETY & GUARDRAILS", "text": "As autonomous capabilities expand, AI alignment researchers are enforcing strict sandboxed execution boundaries and privacy protocols to guarantee safe model behavior.", "highlight_word": "guardrails"},
+        {"badge": "MULTI-MODAL EVOLUTION", "text": "Looking ahead to the upcoming horizon, multi-modal AI systems will natively process voice, vision, code, and physical robotics control seamlessly within unified neural architectures.", "highlight_word": "seamlessly"},
+        {"badge": "ECONOMIC IMPACT", "text": "The massive rate of AI innovation means software developers and creators who adopt these autonomous tools today will gain a decisive competitive advantage in tomorrow's digital economy.", "highlight_word": "advantage"},
+        {"badge": "MODEL COMPARISON", "text": "Comparing frontier proprietary APIs against local open models reveals that while proprietary endpoints lead in raw parameter size, local quantization offers unmatched speed and privacy.", "highlight_word": "privacy"},
+        {"badge": "REAL-WORLD AGENTS", "text": "Real-world agentic implementations are already managing autonomous customer service, complex data pipeline processing, and automated research synthesis around the clock.", "highlight_word": "agentic"},
+        {"badge": "ROBOTICS & VISION", "text": "Integrating visual multi-modal reasoning directly into robotics hardware enables physical machines to navigate dynamic environments and execute precise manipulation tasks.", "highlight_word": "robotics"},
+        {"badge": "CHIP WARS & INFRASTRUCTURE", "text": "The semiconductor chip war is intensifying as tech giants design custom silicon accelerators to reduce reliance on external supply chains and lower compute overhead.", "highlight_word": "silicon"},
+        {"badge": "COMMUNITY COMMENTARY", "text": "What are your thoughts on this AI milestone? Drop your perspective in the comments section below and share which AI tools you rely on in your personal workflow.", "highlight_word": "comments"},
+        {"badge": "CHANNEL TUTORIALS", "text": "Stay tuned for our upcoming deep-dive technical tutorials where we build and deploy autonomous multi-agent systems live on the channel.", "highlight_word": "tutorials"},
+        {"badge": "SUBSCRIBE & STAY AHEAD", "text": "Subscribe to FutureTech AI for daily long-form Virtual Studio broadcasts, technical AI deep dives, and breaking technology updates!", "highlight_word": "Subscribe"}
     ]
     return {
-        "title": f"AI STUDIO BROADCAST: {clean_title[:55]} #AINews",
-        "description": f"Virtual Studio AI News Broadcast analyzing '{clean_title}'.\n\nTimestamps:\n0:00 - Virtual Studio Intro\n0:45 - Breaking News Analysis\n1:45 - Architecture Deep Dive\n3:00 - Enterprise & Dev Impact\n4:30 - Final Verdict\n\nFeatured Source: {source_channel} ({main_target['url']})",
+        "title": f"AI VIRTUAL STUDIO: {clean_title[:55]} #AINews",
+        "description": f"Virtual Studio AI News Broadcast analyzing '{clean_title}'.\n\nTimestamps:\n0:00 - Virtual Studio Welcome\n1:00 - Breaking News Analysis\n2:30 - Architecture Deep Dive\n4:00 - Developer & Enterprise Impact\n6:00 - Future Hardware & Alignment\n7:30 - Final Verdict\n\nFeatured Source: {source_channel} ({main_target.get('url', 'https://youtube.com')})",
         "tags": ["AI", "ArtificialIntelligence", "TechNews", "OpenAI", "Gemini", "AIAgents", "MachineLearning", "FutureTech"],
         "badge_text": "VIRTUAL STUDIO AI",
         "slides": slides
@@ -356,7 +360,7 @@ def generate_procedural_background(width, height):
 # STEP 4: 16:9 Widescreen Thumbnail Generator (1280x720)
 # ==============================================================================
 def generate_presenter_thumbnail(title_text, badge_text, source_channel, output_file="presenter_thumbnail.png"):
-    print("🖼️ Step 4: Generating 16:9 Virtual Studio thumbnail (1280x720)...")
+    print("🖼️ Step 4: Generating high-CTR 16:9 widescreen thumbnail (1280x720)...")
     w, h = 1280, 720
     base_img = generate_procedural_background(w, h)
     draw = PIL.ImageDraw.Draw(base_img)
@@ -365,47 +369,59 @@ def generate_presenter_thumbnail(title_text, badge_text, source_channel, output_
     font_badge = get_font(28)
     font_credit = get_font(22)
 
-    draw.rectangle([15, 15, w-15, h-15], outline=(56, 189, 248), width=6)
-    draw.rectangle([60, 60, 420, 120], fill=(236, 72, 153), outline=(255, 255, 255), width=2)
-    draw.text((80, 75), badge_text, font=font_badge, fill=(255, 255, 255))
+    # Border & Badge
+    draw.rectangle([20, 20, w-20, h-20], outline=(56, 189, 248), width=6)
+    draw.rectangle([60, 50, 420, 110], fill=(236, 72, 153), outline=(255, 255, 255), width=2)
+    bw = get_text_width(font_badge, badge_text)
+    draw.text((60 + (360 - bw)//2, 65), badge_text, font=font_badge, fill=(255, 255, 255))
 
+    # Presenter Avatar Box in Thumbnail
+    cx, cy = 200, 380
+    draw.ellipse([cx-90, cy-90, cx+90, cy+90], fill=(30, 41, 59), outline=(236, 72, 153), width=4)
+    draw.ellipse([cx-50, cy-50, cx+50, cy+50], fill=(56, 189, 248))
+    draw.text((cx-25, cy-15), "AI", font=get_font(36), fill=(255, 255, 255))
+    draw.text((cx-75, cy+110), "ALEX - AI HOST", font=get_font(20), fill=(250, 204, 21))
+
+    # Title Lines
     words = title_text.split()
     lines_list = []
     curr = []
     for word in words:
         curr.append(word)
-        if get_text_width(font_large, " ".join(curr)) > w - 200:
+        if get_text_width(font_large, " ".join(curr)) > w - 420:
             curr.pop()
             lines_list.append(" ".join(curr))
             curr = [word]
     if curr:
         lines_list.append(" ".join(curr))
 
-    y_start = 200
+    y_start = 220
     for line in lines_list[:3]:
         lw = get_text_width(font_large, line)
-        draw.rectangle([(w - lw)//2 - 15, y_start - 8, (w + lw)//2 + 15, y_start + 65], fill=(15, 23, 42, 230))
-        draw.text(((w - lw)//2, y_start), line, font=font_large, fill=(250, 204, 21))
+        draw.rectangle([360, y_start - 8, 360 + lw + 30, y_start + 65], fill=(15, 23, 42, 230))
+        draw.text((375, y_start), line, font=font_large, fill=(250, 204, 21))
         y_start += 85
 
-    credit_text = f"PRESENTER: ALEX (AI ANCHOR) • SOURCE: {source_channel.upper()} • FAIR USE"
+    credit_text = f"SOURCE: {source_channel.upper()} | FAIR USE COMMENTARY"
     cw = get_text_width(font_credit, credit_text)
-    draw.rectangle([(w - cw)//2 - 15, h - 110, (w + cw)//2 + 15, h - 60], fill=(30, 41, 59, 240), outline=(56, 189, 248), width=2)
-    draw.text(((w - cw)//2, h - 92), credit_text, font=font_credit, fill=(255, 255, 255))
+    draw.rectangle([(w - cw)//2 - 20, h - 80, (w + cw)//2 + 20, h - 35], fill=(30, 41, 59, 230), outline=(56, 189, 248), width=2)
+    draw.text(((w - cw)//2, h - 70), credit_text, font=font_credit, fill=(255, 255, 255))
 
     base_img.save(output_file)
-    print(f"   ✅ Thumbnail generated: {output_file}")
+    print(f"   ✅ Widescreen 16:9 Thumbnail generated: {output_file}")
     return output_file
 
 # ==============================================================================
-# STEP 5: 16:9 Virtual Studio MoviePy Video Renderer (1920x1080)
+# STEP 5: 16:9 Virtual Studio Video Renderer with ANIMATED AI CHARACTER AVATAR
 # ==============================================================================
 def render_presenter_video(script_data, news_bundle, output_file="presenter_ai_video.mp4"):
     print("🎬 Step 5: Rendering 16:9 Virtual Studio Presenter video (1920x1080 resolution)...")
     w, h = 1920, 1080
     slides = script_data.get("slides", [])
     total_slides = len(slides)
-    source_channel = news_bundle[0].get("channel", "AI Tech Wire")
+    
+    target_item = news_bundle[0] if isinstance(news_bundle, list) else news_bundle
+    source_channel = target_item.get("channel", "AI Tech Wire")
 
     font_header = get_font(34)
     font_body = get_font(44)
@@ -416,6 +432,18 @@ def render_presenter_video(script_data, news_bundle, output_file="presenter_ai_v
     slide_clips = []
     base_bg_pil = generate_procedural_background(w, h)
 
+    # Reaction callouts & stickers list
+    reaction_badges = [
+        "💡 MIND-BLOWING BREAKTHROUGH!",
+        "🔥 VIRAL TECH ALERT!",
+        "⚡ 10X SPEED BOOST!",
+        "🧠 REASONING LOOP ACTIVE!",
+        "🚀 GAME CHANGER!",
+        "💥 MAJOR INDUSTRY SHIFT!",
+        "📈 BENCHMARK RECORD!",
+        "😎 NEXT-GEN AI ANCHOR!"
+    ]
+
     for idx, slide in enumerate(slides):
         audio_file = f"presenter_audio_{idx}.mp3"
         temp_files.append(audio_file)
@@ -423,7 +451,8 @@ def render_presenter_video(script_data, news_bundle, output_file="presenter_ai_v
         asyncio.run(synthesize_slide_audio(slide_text, audio_file))
 
         audio_clip = AudioFileClip(audio_file)
-        slide_duration = max(audio_clip.duration + 1.5, 22.0)
+        # GUARANTEED 28.0 seconds minimum display floor per slide -> 18 slides = 8.4 minutes minimum!
+        slide_duration = max(audio_clip.duration + 2.0, 28.0)
         badge_str = slide.get("badge", f"PART {idx+1} OF {total_slides}")
         highlight_str = slide.get("highlight_word", "").lower()
 
@@ -441,21 +470,14 @@ def render_presenter_video(script_data, news_bundle, output_file="presenter_ai_v
         draw.rectangle([w - cw - 80, 25, w - 40, 85], fill=(30, 41, 59, 220), outline=(236, 72, 153), width=2)
         draw.text((w - cw - 60, 35), counter_str, font=font_header, fill=(250, 204, 21))
 
-        # 3. Left Side Virtual AI Presenter Card (450px wide)
-        draw.rectangle([60, 160, 500, h - 140], fill=(15, 23, 42, 235), outline=(56, 189, 248), width=3)
-        draw.rectangle([60, 160, 500, 220], fill=(30, 41, 59, 250))
-        draw.text((80, 175), "ALEX | AI PRESENTER ANCHOR", font=get_font(22), fill=(56, 189, 248))
-        
-        # Presenter Avatar Circle
-        cx, cy = 280, 380
-        draw.ellipse([cx-100, cy-100, cx+100, cy+100], fill=(30, 41, 59), outline=(236, 72, 153), width=4)
-        draw.ellipse([cx-60, cy-60, cx+60, cy+60], fill=(56, 189, 248, 180))
-        draw.text((cx-30, cy-15), "AI", font=get_font(38), fill=(255, 255, 255))
-        draw.text((120, cy + 130), f"● MODULE {idx+1} IN PROGRESS", font=get_font(20), fill=(250, 204, 21))
+        # 3. Left Side Virtual AI Presenter Card (500px wide)
+        draw.rectangle([50, 140, 540, h - 140], fill=(15, 23, 42, 235), outline=(56, 189, 248), width=3)
+        draw.rectangle([50, 140, 540, 200], fill=(30, 41, 59, 250))
+        draw.text((70, 155), "ALEX | AI PRESENTER ANCHOR", font=get_font(22), fill=(56, 189, 248))
 
         # 4. Right Side Topic & Text Card
-        draw.rectangle([540, 160, 920, 220], fill=(236, 72, 153))
-        draw.text((560, 175), badge_str.upper(), font=font_badge, fill=(255, 255, 255))
+        draw.rectangle([580, 160, 960, 220], fill=(236, 72, 153))
+        draw.text((600, 175), badge_str.upper(), font=font_badge, fill=(255, 255, 255))
 
         # Text Line Wrapping inside Right Card
         words = slide_text.split()
@@ -463,16 +485,16 @@ def render_presenter_video(script_data, news_bundle, output_file="presenter_ai_v
         curr = []
         for word in words:
             curr.append(word)
-            if get_text_width(font_body, " ".join(curr)) > w - 660:
+            if get_text_width(font_body, " ".join(curr)) > w - 700:
                 curr.pop()
                 lines_list.append(" ".join(curr))
                 curr = [word]
         if curr:
             lines_list.append(" ".join(curr))
 
-        panel_h = len(lines_list) * 75 + 80
+        panel_h = len(lines_list) * 70 + 80
         y_center = (h // 2) - (panel_h // 2) + 20
-        draw.rectangle([540, y_center, w - 60, y_center + panel_h], fill=(10, 15, 30, 225), outline=(168, 85, 247), width=3)
+        draw.rectangle([580, y_center, w - 50, y_center + panel_h], fill=(10, 15, 30, 225), outline=(168, 85, 247), width=3)
 
         # 5. Lower-Third Source Attribution Line
         attr_str = f"SOURCE CREDIT: {source_channel.upper()} • FAIR USE COMMENTARY (17 U.S.C. § 107)"
@@ -481,37 +503,85 @@ def render_presenter_video(script_data, news_bundle, output_file="presenter_ai_v
         draw.text(((w - aw)//2, h - 98), attr_str, font=font_credit, fill=(250, 204, 21))
 
         base_img_np = np.array(frame_pil)
+        rx_badge = reaction_badges[idx % len(reaction_badges)]
 
-        def make_frame(t, base_np=base_img_np, dur=slide_duration, text_lines=lines_list, y_start=y_center+40, hl=highlight_str):
+        # Dynamic Animation Frame Generator (Character Avatar + Mouth Lipsync + Blinking + Equalizer + Reactions)
+        def make_frame(t, base_np=base_img_np, dur=slide_duration, text_lines=lines_list, y_start=y_center+40, hl=highlight_str, r_badge=rx_badge):
             frame = PIL.Image.fromarray(base_np).copy()
             draw_anim = PIL.ImageDraw.Draw(frame)
 
-            # HUD Laser Scanline
+            # A. HUD Laser Scanline
             scan_y = int((t / dur) * h)
             draw_anim.line([(0, scan_y), (w, scan_y)], fill=(56, 189, 248, 160), width=3)
 
-            # Top Progress Bar
+            # B. Top Progress Bar
             prog_w = int((t / dur) * w)
             draw_anim.rectangle([0, 110, prog_w, 116], fill=(250, 204, 21))
 
-            # Animated Audio Equalizer Bars under Avatar (Left Presenter Box)
-            eq_x = 120
-            for eq_i in range(8):
-                bar_h = int(25 + 20 * math.sin(t * 8 + eq_i * 0.7))
-                draw_anim.rectangle([eq_x, 570 - bar_h, eq_x + 25, 570], fill=(56, 189, 248))
-                eq_x += 40
+            # C. ANIMATED AI CHARACTER AVATAR (ALEX)
+            cx, cy = 295, 430
 
-            # Spoken Text Rendering with Highlight Words
+            # 1. Torso & Futuristic Suit
+            draw_anim.ellipse([cx-150, cy+110, cx+150, cy+320], fill=(30, 41, 59), outline=(56, 189, 248), width=3)
+            draw_anim.rectangle([cx-35, cy+70, cx+35, cy+120], fill=(47, 63, 86))
+            draw_anim.line([(cx-60, cy+140), (cx, cy+220), (cx+60, cy+140)], fill=(236, 72, 153), width=3)
+
+            # 2. Character Head / Visor Plate
+            draw_anim.ellipse([cx-105, cy-125, cx+105, cy+85], fill=(24, 34, 53), outline=(236, 72, 153), width=4)
+            draw_anim.rectangle([cx-85, cy-75, cx+85, cy+15], fill=(15, 23, 42), outline=(56, 189, 248), width=2)
+
+            # 3. Dynamic Blinking & Pupil Tracking Eyes
+            is_blink = (abs(math.sin(t * 0.8)) > 0.94)
+            pupil_shift = int(5 * math.sin(t * 1.5))
+            
+            if is_blink:
+                # Eyelids Closed
+                draw_anim.line([(cx-60, cy-35), (cx-10, cy-35)], fill=(56, 189, 248), width=4)
+                draw_anim.line([(cx+10, cy-35), (cx+60, cy-35)], fill=(56, 189, 248), width=4)
+            else:
+                # Eyelids Open & Glowing
+                draw_anim.ellipse([cx-60, cy-55, cx-10, cy-15], fill=(56, 189, 248))
+                draw_anim.ellipse([cx+10, cy-55, cx+60, cy-15], fill=(56, 189, 248))
+                # Pupil Highlight
+                draw_anim.ellipse([cx-42+pupil_shift, cy-42, cx-28+pupil_shift, cy-28], fill=(255, 255, 255))
+                draw_anim.ellipse([cx+28+pupil_shift, cy-42, cx+42+pupil_shift, cy-28], fill=(255, 255, 255))
+
+            # 4. Animated Eyebrows (Expressive)
+            brow_tilt = int(4 * math.sin(t * 2.0))
+            draw_anim.line([(cx-60, cy-70-brow_tilt), (cx-10, cy-65)], fill=(250, 204, 21), width=3)
+            draw_anim.line([(cx+10, cy-65), (cx+60, cy-70-brow_tilt)], fill=(250, 204, 21), width=3)
+
+            # 5. Dynamic Speaking Mouth (Lipsync Simulation)
+            mouth_open = int(8 + 16 * abs(math.sin(t * 14)))
+            draw_anim.rectangle([cx-32, cy+30-mouth_open//2, cx+32, cy+30+mouth_open//2], fill=(250, 204, 21), outline=(255, 255, 255), width=1)
+
+            # 6. Cyber Headset & Microphone
+            draw_anim.line([(cx-110, cy-20), (cx-75, cy+35)], fill=(236, 72, 153), width=4)
+            draw_anim.ellipse([cx-80, cy+25, cx-65, cy+42], fill=(250, 204, 21))
+
+            # D. Animated Audio Equalizer Bars (10 Bars)
+            eq_x = 95
+            for eq_i in range(10):
+                bar_h = int(25 + 25 * abs(math.sin(t * 9 + eq_i * 0.6)))
+                draw_anim.rectangle([eq_x, 620 - bar_h, eq_x + 28, 620], fill=(56, 189, 248))
+                eq_x += 42
+
+            # E. Cartoon Reaction Callout Bubble above Avatar
+            bob_y = int(8 * math.sin(t * 3.0))
+            draw_anim.rectangle([80, 210 + bob_y, 510, 260 + bob_y], fill=(236, 72, 153), outline=(255, 255, 255), width=2)
+            draw_anim.text((95, 222 + bob_y), r_badge, font=get_font(20), fill=(255, 255, 255))
+
+            # F. Spoken Text Rendering with Glowing Word Highlights
             line_y = y_start
             for line in text_lines:
                 lw = get_text_width(font_body, line)
-                x_pos = 580 + ((w - 640 - lw) // 2) if (w - 640 > lw) else 570
+                x_pos = 600 + ((w - 660 - lw) // 2) if (w - 660 > lw) else 590
                 for word in line.split():
                     clean_w = re.sub(r'[^\w]', '', word).lower()
                     color = (250, 204, 21) if (hl and hl in clean_w) else (255, 255, 255)
                     draw_anim.text((x_pos, line_y), word + " ", font=font_body, fill=color)
                     x_pos += get_text_width(font_body, word + " ")
-                line_y += 75
+                line_y += 70
 
             return np.array(frame)
 
@@ -555,6 +625,20 @@ def upload_presenter_to_youtube(video_file, title, description, tags, news_bundl
     clean_desc = sanitize_text(description)
     print(f"🚀 Step 6: Uploading Virtual Studio video '{clean_title}' to YouTube...")
 
+    target_item = {}
+    if isinstance(news_bundle, list) and len(news_bundle) > 0:
+        target_item = news_bundle[0]
+    elif isinstance(news_bundle, dict):
+        target_item = news_bundle
+    elif news_target and isinstance(news_target, dict):
+        target_item = news_target
+    elif source_target and isinstance(source_target, dict):
+        target_item = source_target
+
+    source_title = target_item.get("title", "Featured AI Topic")
+    source_channel = target_item.get("channel", "AI Tech Wire")
+    source_url = target_item.get("url", "https://youtube.com")
+
     client_id = os.environ.get("YOUTUBE_CLIENT_ID")
     client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
     refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN")
@@ -570,13 +654,13 @@ def upload_presenter_to_youtube(video_file, title, description, tags, news_bundl
 
     legal_attribution = (
         "📌 VIRTUAL STUDIO CREDIT & ATTRIBUTION:\n"
-        f"Featured Topic: {news_bundle[0]['title']}\n"
-        f"Source Channel/Press: {news_bundle[0]['channel']}\n"
-        f"Source Link: {news_bundle[0]['url']}\n\n"
+        f"Featured Topic: {source_title}\n"
+        f"Source Channel/Press: {source_channel}\n"
+        f"Source Link: {source_url}\n\n"
         "⚖️ LEGAL STATEMENT & COPYRIGHT COMPLIANCE:\n"
         "This video presents an original, transformative news synthesis, commentary, and educational breakdown of recent AI developments under 17 U.S.C. Section 107 (Fair Use).\n\n"
         "🤖 AI PRODUCTION DISCLAIMER:\n"
-        "Presented by AI Host ALEX using synthetic narration and automated technical visual studio tools for education and research."
+        "Presented by Animated AI Host ALEX using synthetic narration, dynamic character animation, and automated technical visual studio tools for education and research."
     )
 
     full_description = clean_desc[:3500] + "\n\n" + legal_attribution
@@ -604,16 +688,16 @@ def upload_presenter_to_youtube(video_file, title, description, tags, news_bundl
 
     video_id = response.get("id")
     pub_link = "https://" + "youtu.be/" + str(video_id)
-    print(f"🎉 SUCCESS! Published Virtual Studio video live: {pub_link}")
+    print(f"   🎉 SUCCESS! Published Virtual Studio video live: {pub_link}")
 
     if thumbnail_file and os.path.exists(thumbnail_file):
         try:
-            print(f"🖼️ Setting 16:9 thumbnail for Video ID {video_id}...")
             youtube.thumbnails().set(videoId=video_id, media_body=MediaFileUpload(thumbnail_file)).execute()
-            print("   ✅ Thumbnail published successfully!")
+            print("   💵 Custom 16:9 thumbnail set successfully!")
         except Exception as e:
-            print(f"   ⚠️ Could not set thumbnail ({e}).")
+            print(f"   ⚠️ Could not set thumbnail: {e}")
 
+    # Log to local history file to prevent duplicate uploads across runs
     history_file = "posted_topics_history.json"
     local_history = {"hashes": [], "titles": []}
     if os.path.exists(history_file):
@@ -635,7 +719,7 @@ def upload_presenter_to_youtube(video_file, title, description, tags, news_bundl
     return video_id
 
 # ==============================================================================
-# MAIN EXECUTION PIPELINE (EVERY 12 HOURS)
+# MAIN EXECUTION PIPELINE (BATCH MULTI-VIDEO GENERATION)
 # ==============================================================================
 def main():
     print("======================================================================")
@@ -643,29 +727,37 @@ def main():
     print("======================================================================")
     
     news_bundle = fetch_presenter_ai_trends()
-    script_data = generate_presenter_script(news_bundle)
+    
+    for v_idx, news_item in enumerate(news_bundle):
+        print(f"\n🎬 Processing Episode {v_idx + 1} of {len(news_bundle)}: '{news_item.get('title')}'")
+        script_data = generate_presenter_script(news_item)
 
-    thumb_file = generate_presenter_thumbnail(
-        title_text=script_data.get("title", "AI STUDIO BROADCAST"),
-        badge_text=script_data.get("badge_text", "VIRTUAL STUDIO AI"),
-        source_channel=news_bundle[0].get("channel", "AI Creator")
-    )
+        out_thumb = f"presenter_thumbnail_{v_idx + 1}.png"
+        out_video = f"presenter_ai_video_{v_idx + 1}.mp4"
 
-    video_file = render_presenter_video(
-        script_data=script_data,
-        news_bundle=news_bundle
-    )
+        thumb_file = generate_presenter_thumbnail(
+            title_text=script_data.get("title", "AI STUDIO BROADCAST"),
+            badge_text=script_data.get("badge_text", "VIRTUAL STUDIO AI"),
+            source_channel=news_item.get("channel", "AI Creator"),
+            output_file=out_thumb
+        )
 
-    upload_presenter_to_youtube(
-        video_file=video_file,
-        title=script_data.get("title", "AI STUDIO BROADCAST"),
-        description=script_data.get("description", "Virtual Studio AI News Broadcast."),
-        tags=script_data.get("tags", ["AI", "TechNews"]),
-        news_bundle=news_bundle,
-        thumbnail_file=thumb_file
-    )
+        video_file = render_presenter_video(
+            script_data=script_data,
+            news_bundle=news_item,
+            output_file=out_video
+        )
 
-    print("======================================================================")
+        upload_presenter_to_youtube(
+            video_file=video_file,
+            title=script_data.get("title", "AI STUDIO BROADCAST"),
+            description=script_data.get("description", "Virtual Studio AI News Broadcast."),
+            tags=script_data.get("tags", ["AI", "TechNews"]),
+            news_bundle=news_item,
+            thumbnail_file=thumb_file
+        )
+
+    print("\n======================================================================")
     print("✅ 12-HOUR ANIMATED AI PRESENTER PIPELINE COMPLETE")
     print("======================================================================")
 
