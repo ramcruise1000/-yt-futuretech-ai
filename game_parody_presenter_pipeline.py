@@ -1,16 +1,3 @@
-import unicodedata
-
-def is_english_text(text):
-    if not text:
-        return False
-    foreign_chars = 0
-    for char in str(text):
-        cp = ord(char)
-        if cp > 0x024F:
-            if unicodedata.category(char).startswith(('L', 'N', 'M', 'S')):
-                foreign_chars += 1
-    return foreign_chars <= 1
-
 # ==============================================================================
 # GAMING & PARODY AI ACADEMY PIPELINE (EVERY 6 HOURS)
 # 100% Original Parody Avatars, Transformative Fair Use (17 U.S.C. § 107), 16:9 5+ Min Video
@@ -199,8 +186,6 @@ def fetch_gaming_ai_trends():
     if client_id and client_secret and refresh_token and build:
         try:
             yt_request = youtube.search().list(
-                relevanceLanguage="en",
-                regionCode="US",
                 q="AI Pathfinding OR Game AI neural network OR Procedural Generation AI OR Reinforcement Learning",
                 part="snippet", type="video", order="viewCount", publishedAfter=time_48h_ago, maxResults=8
             )
@@ -209,7 +194,7 @@ def fetch_gaming_ai_trends():
                 snippet = item.get("snippet", {})
                 vid_id = item.get("id", {}).get("videoId")
                 title = snippet.get("title", "")
-                if vid_id and is_english_text(title) and not is_duplicate_topic(title, uploaded_titles, local_history):
+                if vid_id and not is_duplicate_topic(title, uploaded_titles, local_history):
                     news_items.append({
                         "title": title,
                         "channel": snippet.get("channelTitle", "AI Gaming Lab"),
@@ -231,7 +216,7 @@ def fetch_gaming_ai_trends():
                 feed = feedparser.parse(feed_url)
                 for entry in feed.entries[:3]:
                     f_title = sanitize_text(entry.title)
-                    if is_english_text(f_title) and not is_duplicate_topic(f_title, uploaded_titles, local_history):
+                    if not is_duplicate_topic(f_title, uploaded_titles, local_history):
                         news_items.append({
                             "title": f_title,
                             "channel": entry.get("author", "Tech Press Digest"),
@@ -285,7 +270,6 @@ def generate_gaming_script(bundle):
         f"TOPIC TO EXPLAIN: '{clean_title}'.",
         "",
         "RULES:",
-        "0. CRITICAL LANGUAGE RULE: The generated title, description, tags, and all slide text MUST be strictly 100% in ENGLISH. Translate any foreign words or non-English characters into clear English.",
         "1. Produce an original, exciting 14-slide educational script.",
         "2. CRITICAL: Each slide MUST contain 60 to 75 words of spoken commentary (~24 seconds per slide = ~5.5 minutes total runtime).",
         "3. Explain the technical AI concept using fun gaming/cartoon analogies, pixel math, and real developer insights.",
@@ -713,11 +697,19 @@ def upload_gaming_to_youtube(video_file, title, description, tags, bundle, thumb
     media = MediaFileUpload(video_file, chunksize=-1, resumable=True, mimetype="video/mp4")
     request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
 
-    response = None
-    while response is None:
-        status, response = request.next_chunk()
-        if status:
-            print(f"   Upload Progress: {int(status.progress() * 100)}%")
+    try:
+        response = None
+        while response is None:
+            status, response = request.next_chunk()
+            if status:
+                print(f"   Upload Progress: {int(status.progress() * 100)}%")
+    except Exception as e:
+        err_str = str(e)
+        if "Quota exceeded" in err_str or "429" in err_str or "uploadLimitExceeded" in err_str or "rateLimitExceeded" in err_str:
+            print(f"   ⚠️ YOUTUBE DAILY UPLOAD QUOTA REACHED!\n   Details: {err_str}\n   💡 Note: Video rendered successfully to disk. Uploads will automatically resume when YouTube API quota resets at Midnight PST.")
+        else:
+            print(f"   ⚠️ YouTube Upload Error: {e}")
+        return None
 
     video_id = response.get("id")
     pub_link = "https://" + "youtu.be/" + str(video_id)
