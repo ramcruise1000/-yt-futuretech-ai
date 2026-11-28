@@ -1,17 +1,3 @@
-
-import unicodedata
-
-def is_english_text(text):
-    if not text:
-        return False
-    foreign_chars = 0
-    for char in str(text):
-        cp = ord(char)
-        if cp > 0x024F:
-            if unicodedata.category(char).startswith(('L', 'N', 'M', 'S')):
-                foreign_chars += 1
-    return foreign_chars <= 1
-
 # =========================================
 # CURATOR PIPELINE: VIRAL 12-HOUR AI DIGEST
 # ========================================
@@ -102,9 +88,6 @@ def fetch_viral_12h_ai_content():
             # Query 1A: Search Creative Commons (CC-BY) AI videos from last 12h
             print("   💡 Searching Creative Commons (CC-BY) AI videos (Last 12H)...")
             cc_request = youtube.search().list(
-                relevanceLanguage="en",
-                regionCode="US",
-
                 q="AI artificial intelligence OpenAI Gemini Claude LLM breakthrough",
                 part="snippet",
                 type="video",
@@ -118,7 +101,7 @@ def fetch_viral_12h_ai_content():
             for item in cc_response.get("items", []):
                 snippet = item.get("snippet", {})
                 vid_id = item.get("id", {}).get("videoId")
-                if vid_id and is_english_text(snippet.get("title", "")):
+                if vid_id:
                     v_url = "https://" + "www.youtube.com/watch?v=" + str(vid_id)
                     viral_items.append({
                         "id": vid_id,
@@ -135,9 +118,6 @@ def fetch_viral_12h_ai_content():
             if not viral_items:
                 print("   💡 Searching top trending general AI videos (Last 12H for Fair Use Commentary)...")
                 gen_request = youtube.search().list(
-                relevanceLanguage="en",
-                regionCode="US",
-
                     q="AI breakthrough OR OpenAI OR Gemini 1.5 OR Claude 3.5 OR Nvidia AI",
                     part="snippet",
                     type="video",
@@ -149,7 +129,7 @@ def fetch_viral_12h_ai_content():
                 for item in gen_response.get("items", []):
                     snippet = item.get("snippet", {})
                     vid_id = item.get("id", {}).get("videoId")
-                    if vid_id and is_english_text(snippet.get("title", "")):
+                    if vid_id:
                         v_url = "https://" + "www.youtube.com/watch?v=" + str(vid_id)
                         viral_items.append({
                             "id": vid_id,
@@ -179,7 +159,6 @@ def fetch_viral_12h_ai_content():
                     feed = feedparser.parse(feed_url)
                     for entry in feed.entries[:3]:
                         title = sanitize_text(entry.title)
-                        if not is_english_text(title): continue
                         link = entry.link
                         summary = sanitize_text(entry.get("summary", title))
                         viral_items.append({
@@ -222,99 +201,105 @@ def generate_curation_script(viral_target):
     Generates a 100% original, transformative commentary & breakdown script 
     based on the 12-hour viral video item. Uses Gemini / Groq / OpenRouter / Procedural fallback.
     """
-    print("𝞥 Step 2: Generating transformative commentary & viral Shorts script...")
+    print("🎬 Step 2: Generating transformative commentary & viral Shorts script...")
     
     title_orig = viral_target["title"]
     channel_orig = viral_target["channel"]
     desc_orig = viral_target["description"][:300]
     license_type = viral_target["license_type"]
     
-    prompt = f"""You are a top tech journalist creating a viral YouTube Short (40-45 seconds) analyzing a viral AI video that exploded in the last 12 hours.
-
-VIRAL TARGET DATA:
-- Original Title: "{title_orig}"
-- Original Creator/Channel: "{channel_orig}"
-- Target Details: "{desc_orig}"
-- Curation Mode: {license_type}
-
-RULES:
-0. CRITICAL LANGUAGE RULE: The generated title, description, tags, and all slide text MUST be strictly 100% in ENGLISH. Translate any foreign words or non-English characters into clear English.
-1. Create a TRANSFORMATIONAL, exciting 4-slide commentary script.
-2. DO NOT just copy the target. Analyze WHY it's viral, what it means for viewers, and the key breakthrough.
-3. Keep spoken lines punchy (15-20 words per slide).
-4. Include strong hook title, description with channel credit, tags, and badge text.
-
-Return ONLY valid JSON in this EXACT structure:
-{
-  "title": "VIRAL 12H AI: [Catchy Title] #Shorts",
-  "description": "Explaining the viral AI breakthrough from {channel_orig}...",
-  "tags": ["AI", "ArtificialIntelligence", "Shorts", "TechNews", "ViralAI"],
-  "badge_text": "12H VIRAL BREAKDOWN",
-  "slides": [
-    {
-      "badge": "VIRAL 12H UPDATE",
-      "text": "A massive AI breakthrough just went viral in the last 12 hours from {channel_orig}!",
-      "highlight_word": "breakthrough"
-    },
-    {
-      "badge": "KEY INNOVATION",
-      "text": "Here is why everyone is talking about {title_orig[:30]} and what it changes.",
-      "highlight_word": "innovative"
-    },
-    {
-      "badge": "THE IMPACT",
-      "text": "This technology automates complex workflows in seconds, disrupting traditional tools.",
-      "highlight_word": "disrupting"
-    },
-    {
-      "badge": "VERDICT",
-      "text": "Subscribe to FutureTech AI for daily 12-hour viral breakdowns as they happen!",
-      "highlight_word": "Subscribe"
-    }
-  ]
-}
-"""
+    prompt_lines = [
+        "You are a top tech journalist creating a viral YouTube Short (40-45 seconds) analyzing a viral AI video that exploded in the last 12 hours.",
+        "",
+        "VIRAL TARGET DATA:",
+        f"- Original Title: \"{title_orig}\"",
+        f"- Original Creator/Channel: \"{channel_orig}\"",
+        f"- Target Details: \"{desc_orig}\"",
+        f"- Curation Mode: {license_type}",
+        "",
+        "RULES:",
+        "1. Create a TRANSFORMATIONAL, exciting 4-slide commentary script.",
+        "2. DO NOT just copy the target. Analyze WHY it's viral, what it means for viewers, and the key breakthrough.",
+        "3. Keep spoken lines punchy (15-20 words per slide).",
+        "4. Include strong hook title, description with channel credit, tags, and badge text.",
+        "5. CRITICAL LANGUAGE RULE: Everything MUST be strictly 100% in ENGLISH.",
+        "",
+        "Return ONLY valid JSON in this EXACT structure:",
+        "{",
+        '  "title": "VIRAL 12H AI: [Catchy Title] #Shorts",',
+        f'  "description": "Explaining the viral AI breakthrough from {channel_orig}...",',
+        '  "tags": ["AI", "ArtificialIntelligence", "Shorts", "TechNews", "ViralAI"],',
+        '  "badge_text": "12H VIRAL BREAKDOWN",',
+        '  "slides": [',
+        '    {',
+        '      "badge": "VIRAL 12H UPDATE",',
+        f'      "text": "A massive AI breakthrough just went viral in the last 12 hours from {channel_orig}!",',
+        '      "highlight_word": "breakthrough"',
+        '    },',
+        '    {',
+        '      "badge": "KEY INNOVATION",',
+        f'      "text": "Here is why everyone is talking about {title_orig[:30]} and what it changes.",',
+        '      "highlight_word": "innovative"',
+        '    },',
+        '    {',
+        '      "badge": "THE IMPACT",',
+        '      "text": "This technology automates complex workflows in seconds, disrupting traditional tools.",',
+        '      "highlight_word": "disrupting"',
+        '    },',
+        '    {',
+        '      "badge": "VERDICT",',
+        '      "text": "Subscribe to FutureTech AI for daily 12-hour viral breakdowns as they happen!",',
+        '      "highlight_word": "Subscribe"',
+        '    }',
+        '  ]',
+        "}"
+    ]
+    prompt = "\n".join(prompt_lines)
     
-    gemiji_key = os.environ.get("GEMINI_API_KEY")
+    gemini_key = os.environ.get("GEMINI_API_KEY")
     if gemini_key and genai:
-        try:
-            client = genai.Client(api_key=gemini_key)
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt,
-                config=types.GenerateContentConfig(response_mime_type="application/json")
-            )
-            if response and response.text:
-                return json.loads(response.text)
-        except Exception as e:
-            print(f"   ⚠f Gemini script generation note: {e}")
+        for g_model in ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]:
+            try:
+                client = genai.Client(api_key=gemini_key)
+                response = client.models.generate_content(
+                    model=g_model,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(response_mime_type="application/json")
+                )
+                if response and response.text:
+                    parsed = json.loads(response.text)
+                    if "slides" in parsed and len(parsed["slides"]) >= 4:
+                        return parsed
+            except Exception as e:
+                print(f"   ⚠️ Gemini script generation note ({g_model}): {e}")
 
     groq_key = os.environ.get("GROQ_API_KEY")
     if groq_key and Groq:
-        try:
-            client = Groq(api_key=groq_key)
-            completion = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"}
-            )
-            if completion.choices:
-                return json.loads(completion.choices[0].message.content)
-        except Exception as e:
-            print(f"   ⚆ Groq script generation note: {eu}")
+        for q_model in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]:
+            try:
+                client = Groq(api_key=groq_key)
+                completion = client.chat.completions.create(
+                    model=q_model,
+                    messages=[{"role": "user", "content": prompt}],
+                    response_format={"type": "json_object"}
+                )
+                if completion.choices and completion.choices[0].message.content:
+                    parsed = json.loads(completion.choices[0].message.content)
+                    if "slides" in parsed and len(parsed["slides"]) >= 4:
+                        return parsed
+            except Exception as e:
+                print(f"   ⚠️ Groq script generation note ({q_model}): {e}")
 
     clean_target = sanitize_text(title_orig)
-    if not is_english_text(clean_target):
-        clean_target = "Latest Autonomous AI Agent Breakthrough"
     return {
-        "title": f"VIRAL 12H UPDATE: {clean_target[:00]} #Shorts",
+        "title": f"VIRAL 12H UPDATE: {clean_target[:50]} #Shorts",
         "description": f"Breaking down the viral AI breakthrough from {channel_orig} in the last 12 hours. Original Creator: {channel_orig} ({viral_target['url']}).",
         "tags": ["AI", "TechNews", "ViralAI", "Shorts", "ArtificialIntelligence"],
         "badge_text": "12H VIRAL BREAKDOWN",
         "slides": [
             {
                 "badge": "VIRAL 12H UPDATE",
-                "text": f"A major AI videor just went viral in the last 12 hours created by {channel_orig}.",
+                "text": f"A major AI video just went viral in the last 12 hours created by {channel_orig}.",
                 "highlight_word": "viral"
             },
             {
